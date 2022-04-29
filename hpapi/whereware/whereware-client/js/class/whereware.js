@@ -126,6 +126,21 @@ export class Whereware extends Generic {
         this.insertRender ('booked',this.qs(this.restricted,'#orders'));
     }
 
+    moveCalculate (evt) {
+        var item,items,ndd,nr,qty;
+        nr = parseInt (evt.target.value);
+        if (nr<1) {
+            nr = 1;
+        }
+        evt.currentTarget.value = nr;
+        items = this.qsa (evt.currentTarget.form,'tbody tr.component-bin');
+        for (item of items) {
+            qty = this.qs(item,'td.selected > input').dataset.quantity;
+            ndd = this.qs(item,'td.needed');
+            ndd.textContent = nr * parseInt(qty);
+        }
+    }
+
     navigatorsSelector ( ) {
         return 'a.navigator,button.navigator,.nugget.navigator,td.navigator';
     }
