@@ -115,14 +115,15 @@ export class Whereware extends Generic {
         }
         try {
             response = await this.request (request);
-            this.data.whereware.moves = response.moves;
+            this.data.whereware.moves = response.returnValue.moves;
             this.parameters.wherewareBookingId = response.returnValue.bookingId;
         }
         catch (e) {
             console.log ('move(): could not move stock: '+e.message);
             return false;
         }
-        this.insertRender ('moved','orders');
+        await this.templateFetch ('booked');
+        this.insertRender ('booked',this.qs(this.restricted,'#orders'));
     }
 
     navigatorsSelector ( ) {
