@@ -154,7 +154,16 @@ class Whereware {
             ]
         }
         */
-        $sku = $this->sku ($move->composite_sku);       
+        if (!preg_match('<^[1-9][0-9]*$>',$obj->composite_quantity)) {
+            throw new \Exception (WHEREWARE_STR_QTY_INVALID);
+            return false;
+        }
+        $obj->customer_location = trim ($obj->customer_location);
+        if (!strlen($obj->customer_location)) {
+            throw new \Exception (WHEREWARE_STR_QTY_INVALID);
+            return false;
+        }
+        $sku = $this->sku ($obj->composite_sku);
         if (!$sku) {
             throw new \Exception (WHEREWARE_STR_SKU_NOT_FOUND);
             return false;
@@ -169,6 +178,8 @@ class Whereware {
         // Components to assembly/goods-out location composite bin
         foreach ($obj->picks as $pick) {
             $moves[] = [
+                'order_ref' => $obj->order_ref,
+                'status' => 'R',
                 'quantity' => $obj->composite_quantity * $pick->quantity,
                 'sku' => $pick->sku,
                 'from_location' => WHEREWARE_LOCATION_COMPONENT,
@@ -180,8 +191,10 @@ class Whereware {
         // Assembled qty x composite to goods-out location, composite bin
         if (WHEREWARE_LOCATION_ASSEMBLY) {
             $moves[] = [
+                'order_ref' => $obj->order_ref,
+                'status' => 'R',
                 'quantity' => $obj->composite_quantity,
-                'sku' => $move->composite_sku,
+                'sku' => $obj->composite_sku,
                 'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
                 'from_bin' => $sku->bin,
                 'to_location' => WHEREWARE_LOCATION_GOODSOUT,
@@ -190,8 +203,10 @@ class Whereware {
         }
         // Goods-out qty x composite to customer location
         $moves[] = [
+            'order_ref' => $obj->order_ref,
+            'status' => 'R',
             'quantity' => $obj->composite_quantity,
-            'sku' => $move->composite_sku,
+            'sku' => $obj->composite_sku,
             'from_location' => WHEREWARE_LOCATION_GOODSOUT,
             'from_bin' => $sku->bin,
             'to_location' => $obj->customer_location,
@@ -204,10 +219,10 @@ class Whereware {
             $booking_id = $result[0]['id'];
             foreach ($moves as $m) {
                 $result = $this->hpapi->dbCall (
-                    `wwMoveInsert`,
-                    $obj->order_ref,
+                    'wwMoveInsert',
+                    $m['order_ref'],
                     $booking_id,
-                    'R',
+                    $m['status'],
                     $m['quantity'],
                     $m['sku'],
                     $m['from_location'],
@@ -218,15 +233,26 @@ class Whereware {
             }
         }
         catch (\Exception $e) {
-            $this->hpapi->dbCall (
-                `wwMoveCancel`,
-                $booking_id
-            );
             $this->hpapi->diagnostic ($e->getMessage());
-            $this->hpapi->diagnostic ("booking_id=$booking_id moves are cancelled");
+            try {
+                if ($booking_id) {
+                    $this->hpapi->dbCall (
+                        'wwBookingCancel',
+                        $booking_id
+                    );
+                    $this->hpapi->diagnostic ("booking_id=$booking_id moves are cancelled");
+                }
+            }
+            catch (\Exception $e2) {
+                $this->hpapi->diagnostic ($e->getMessage());
+            }
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
+        $rtn = new \stdClass ();
+        $rtn->bookingId = $booking_id;
+        $rtn->moves = $this->hpapi->parse2D ($moves);
+        return $rtn;
     }
 
     public function orders ($order_ref) {
@@ -514,9 +540,9 @@ class Whereware {
 
     public function sku ($sku) {
         $likes = $this->skus ($sku);       
-        foreach ($likes as $like) {
-            if ($like['sku']==$move->composite_sku) {
-                return $like['sku'];
+        foreach ($likes->skus as $like) {
+            if ($like->sku==$sku) {
+                return $like;
                 break;
             }
         }
