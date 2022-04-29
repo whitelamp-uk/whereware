@@ -1,0 +1,13 @@
+{
+    "folders":
+    [
+        {
+            "path": ".",
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        },
+        {
+            "path": "../_hpapi-config/whereware",
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        }
+    ]
+}

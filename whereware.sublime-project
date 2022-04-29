@@ -1,0 +1,17 @@
+{
+    "folders":
+    [
+        {
+            "path": "./adminer-customselect",
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        },
+        {
+            "path": "./hpapi/_hpapi-config",
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        },
+        {
+            "path": "./hpapi/whereware",
+            "file_exclude_patterns": ["*.*"]
+        }
+    ]
+}

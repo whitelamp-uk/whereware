@@ -1,0 +1,61 @@
+
+What can you do with DB / Adminer without a front end?
+======================================================
+
+
+
+Key database features
+---------------------
+
+Force "foreign key constraints" to ensure that data entry of a short code referencing matching column(s) in other table(s) cannot be mistyped.
+
+For any given table, when a user inserts or updates a new row, one may code triggers to make data modifications anywhere within the database.
+
+Permissions can be set on a per-"role" basis (other systems usually call this a "user group"). Each user is then assigned a role.
+
+Permissions feature provides per-role/per-table access control for INSERT and DELETE (typically one avoids use of DELETE however).
+
+Permissions feature provides per-role/per-column access control for SELECT and UPDATE.
+
+Stored procedures can be coded to automate SQL reporting (ie use of SELECT) but can also automate data changes (ie use of INSERT/UPDATE).
+
+
+
+
+
+Key Adminer features
+--------------------
+
+You can use Adminer to carry out search/filter that is far easier to learn/use than spreadsheet filtering.
+
+You can use aggregate functions from a drop down menu to get a count, a sum, a mean value, etc.
+
+You can run any SQL stored procedure (subject to role permissions); once it has been selected you have a form to fill in parameters (if there are any). The routine is called by posting the form; the results are returned as HTML tabular data.
+
+Adminer does not add any more permssions features - it simply passes on your requests to the database which in turn either allow/disallows it.
+
+Adminer, therefore, only shows the columns defined by database SELECT permissions and the editing of cells is contrained by database UPDATE permissions.
+
+
+
+
+Strategies
+----------
+
+The best way of handling "old" data (ie annoyingly in your way) is to mark it thus; for example, giving a table an integer column called `deleted` and updating the record from `deleted`=0 by setting `deleted`=1. Then one can filter it out - developer's by writing stored procedures that do the filtering and Adminer users by using the search/filter feature.
+
+
+
+
+Limitations
+-----------
+
+Neither the database (natively) nor Adminer (as a web application) provide any sort of user self-management.
+  * Option 1 is to have a member of staff who learns how to use Adminer to manually set a new database password and SMS it to the user (say) these should be difficult passwords - they do not need regular changing (only if a risk of breach is identified)
+  * Option 2 is to write a bespoke web component to do this [ Kevin, this is obvs redeployable - probably without mondification - in any future Adminer-based data solution ]
+
+Databases are not very good at multiple roles per user; it is recommended that a staff member who wears more than one hat should be given one database user per hat.
+
+
+
+

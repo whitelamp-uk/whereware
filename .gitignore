@@ -1,0 +1,7 @@
+
+**/*.sublime-workspace
+**/*.tmp
+
+# Ignore LibreOffice temporary files
+.*.*#
+
