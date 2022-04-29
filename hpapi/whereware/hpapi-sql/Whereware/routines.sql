@@ -18,6 +18,20 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwBookingCancel`$$
+CREATE PROCEDURE `wwBookingCancel`(
+  IN `bookingId` int(11) UNSIGNED
+)
+BEGIN
+  UPDATE `ww_move`
+  SET
+    `cancelled`=1
+  WHERE `booking_id`=bookingId
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwBookingInsert`$$
 CREATE PROCEDURE `wwBookingInsert`(
 )
@@ -181,20 +195,6 @@ END$$
 
 
 DELIMITER $$
-DROP PROCEDURE IF EXISTS `wwMoveCancel`$$
-CREATE PROCEDURE `wwMoveCancel`(
-  IN `bookingId` int(11) UNSIGNED
-)
-BEGIN
-  UPDATE `ww_move`
-  SET
-    `cancelled`=1
-  WHERE `booking_id`=bookingId
-  ;
-END$$
-
-
-DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwMoveInsert`$$
 CREATE PROCEDURE `wwMoveInsert`(
    IN `orderRef` varchar(64)
@@ -210,15 +210,16 @@ CREATE PROCEDURE `wwMoveInsert`(
 BEGIN
   INSERT INTO `ww_move`
   SET
-   `order_ref`=orderRef
-  ,`booking_id`=bookingId
-  ,`sts`=sts
-  ,`quantity`=qty
-  ,`sku`=sk
-  ,`from_location`=frLoc
-  ,`from_bin`=frBin
-  ,`to_location`=toLoc
-  ,`to_bin`=toBin
+    `order_ref`=orderRef
+   ,`booking_id`=bookingId
+   ,`status`=sts
+   ,`quantity`=qty
+   ,`sku`=sk
+   ,`from_location`=frLoc
+   ,`from_bin`=frBin
+   ,`to_location`=toLoc
+   ,`to_bin`=toBin
+   ,`notes`='' 
   ;
   SELECT LAST_INSERT_ID() AS `id`
   ;
@@ -234,7 +235,8 @@ BEGIN
   SELECT
     `m`.`order_ref`
   FROM `ww_move` AS `m`
-  WHERE `order_ref`=orderRef
+  WHERE `cancelled`=0
+    AND `order_ref`=orderRef
 --  JOIN (
 --    SELECT
 --      `sku`
