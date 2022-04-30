@@ -19,4 +19,5 @@ define ( 'WHEREWARE_LOCATION_ASSEMBLY',     'A-1'                   );
 define ( 'WHEREWARE_LOCATION_COMPONENT',    'W-1'                   );
 define ( 'WHEREWARE_LOCATION_GOODSOUT',     'W-1'                   );
 define ( 'WHEREWARE_LOCATIONS_CUSTOMERS',   'C-'                    );
+define ( 'WHEREWARE_ASSEMBLY_AUTO_FULFIL',  true                    );
 

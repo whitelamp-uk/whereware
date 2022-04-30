@@ -169,12 +169,6 @@ class Whereware {
             return false;
         }
         $moves = [];
-        if (WHEREWARE_LOCATION_ASSEMBLY) {
-            $to = WHEREWARE_LOCATION_ASSEMBLY;
-        }
-        else {
-            $to = WHEREWARE_LOCATION_GOODSOUT;
-        }
         // Components to assembly/goods-out location composite bin
         foreach ($obj->picks as $pick) {
             $moves[] = [
@@ -184,23 +178,27 @@ class Whereware {
                 'sku' => $pick->sku,
                 'from_location' => WHEREWARE_LOCATION_COMPONENT,
                 'from_bin' => $pick->bin,
-                'to_location' => $to,
+                'to_location' => WHEREWARE_LOCATION_ASSEMBLY,
                 'to_bin' => $sku->bin
             ];
         }
         // Assembled qty x composite to goods-out location, composite bin
-        if (WHEREWARE_LOCATION_ASSEMBLY) {
-            $moves[] = [
-                'order_ref' => $obj->order_ref,
-                'status' => 'R',
-                'quantity' => $obj->composite_quantity,
-                'sku' => $obj->composite_sku,
-                'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
-                'from_bin' => $sku->bin,
-                'to_location' => WHEREWARE_LOCATION_GOODSOUT,
-                'to_bin' => $sku->bin
-            ];
+        if (WHEREWARE_ASSEMBLY_AUTO_FULFIL) {
+            $status = 'R';
         }
+        else {
+            $status = 'F';
+        }
+        $moves[] = [
+            'order_ref' => $obj->order_ref,
+            'status' => 'R',
+            'quantity' => $obj->composite_quantity,
+            'sku' => $obj->composite_sku,
+            'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
+            'from_bin' => $sku->bin,
+            'to_location' => WHEREWARE_LOCATION_GOODSOUT,
+            'to_bin' => $sku->bin
+        ];
         // Goods-out qty x composite to customer location
         $moves[] = [
             'order_ref' => $obj->order_ref,

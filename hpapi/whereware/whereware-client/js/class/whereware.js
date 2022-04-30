@@ -136,7 +136,7 @@ export class Whereware extends Generic {
         items = this.qsa (evt.currentTarget.form,'tbody tr.component-bin');
         for (item of items) {
             qty = this.qs(item,'td.selected > input').dataset.quantity;
-            ndd = this.qs(item,'td.needed');
+            ndd = this.qs(item,'td.needs');
             ndd.textContent = nr * parseInt(qty);
         }
     }
