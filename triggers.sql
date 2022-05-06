@@ -167,6 +167,8 @@ BEGIN
   DECLARE usr varchar(255);
   SELECT USER() INTO usr
   ;
+  SET NEW.`hidden` = IF(NEW.`cancelled`>0,1,NEW.`hidden`)
+  ;
   SET NEW.`updater` = usr
   ;
   SET NEW.`order_ref` = UPPER(NEW.`order_ref`)
