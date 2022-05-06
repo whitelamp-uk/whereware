@@ -2,6 +2,11 @@
     "folders":
     [
         {
+            "path": ".",
+            "file_include_patterns": ["*.*"],
+            "file_exclude_patterns": [".git*","*.sublime-*"]
+        },
+        {
             "path": "./adminer-customselect",
             "file_exclude_patterns": [".git*","*.sublime-*"]
         },

@@ -5,8 +5,134 @@ import {Generic} from './generic.js';
 
 export class Whereware extends Generic {
 
-    adminerEdit (evt) {
-        evt.preventDefault ();
+    actorsListen (defns) {
+        defns.push (
+            { class: 'whereware-link', event: 'click', function: this.adminerLink }
+        );
+        super.actorsListen (defns);
+    }
+
+    adminer (request) {
+        var count,settings,url,win;
+        settings = this.storageRead ('whereware');
+        if (settings && settings.whereware_db_user && settings.whereware_db_name) {
+            url  = this.adminerUrl;
+            url += '?username=' + this.escapeForHtml(settings.whereware_db_user);
+            url += '&db=' + this.escapeForHtml(settings.whereware_db_name);
+            url += '&' + this.escapeForHtml(request.action) + '=' + this.escapeForHtml(request.table);
+            count = 0;
+            if (request.action=='select') {
+                if ('hidden' in request) {
+                    count++;
+                    url += '&where['+count+'][col]=hidden';
+                    url += '&where['+count+'][op]=' + this.escapeForHtml('=');
+                    if (request.hidden>0) {
+                        url += '&where['+count+'][val]=1';
+                    }
+                    else {
+                        url += '&where['+count+'][val]=0';
+                    }
+                }
+                if ('cancelled' in request) {
+                    count++;
+                    url += '&where['+count+'][col]=cancelled';
+                    url += '&where['+count+'][op]=' + this.escapeForHtml('=');
+                    if (request.cancelled>0) {
+                        url += '&where['+count+'][val]=1';
+                    }
+                    else {
+                        url += '&where['+count+'][val]=0';
+                    }
+                }
+            }
+            if (request.action=='select' && request.column) {
+                count++;
+                url += '&where['+count+'][col]=' + this.escapeForHtml(request.column);
+                url += '&where['+count+'][op]=' + this.escapeForHtml(request.operator);
+                url += '&where['+count+'][val]=' + this.escapeForHtml(request.value);
+            }
+            else if (request.action=='edit' && column) {
+                url += '&where[' + request.column + ']=' + this.escapeForHtml(request.value);
+            }
+            console.log ('URL: '+url);
+            win = 'whereware-adminer-' + request.action;
+            if (request.action=='edit' && request.column) {
+                win += '-' + request.column;
+            }
+            win = window.open (url,win);
+            win.focus ();
+        }
+        else {
+            this.statusShow ('Missing SQL user and/or database name');
+        }
+    }
+
+    adminerInit ( ) {
+        var dbn,dbu,settings;
+        settings = this.storageRead ('whereware');
+        if (!settings || !settings.whereware_db_name || !settings.whereware_db_user) {
+            settings = {
+                whereware_db_name: null,
+                whereware_db_user: null
+            };
+            dbn = this.qs (this.restricted,'#whereware-settings [name="whereware_db_name"]');
+            if (dbn) {
+                dbn.value = dbn.value.trim ();
+                settings.whereware_db_name = dbn.value;
+            }
+            dbu = this.qs (this.restricted,'#whereware-settings [name="whereware_db_user"]');
+            if (dbu) {
+                dbu.value = dbu.value.trim ();
+                settings.whereware_db_user = dbu.value;
+            }
+            this.storageWrite ('whereware',settings);
+            this.data.whereware.settings = settings;
+        }
+    }
+
+    adminerLink (evt) {
+        var dbn,dbu,request,settings;
+        settings = this.storageRead ('whereware');
+        if (!settings || !settings.whereware_db_name || !settings.whereware_db_user) {
+            settings = {
+                whereware_db_name: null,
+                whereware_db_user: null
+            };
+            dbn = this.qs (this.restricted,'#whereware-settings [name="whereware_db_name"]');
+            if (dbn) {
+                dbn.value = dbn.value.trim ();
+                settings.whereware_db_name = dbn.value;
+            }
+            dbu = this.qs (this.restricted,'#whereware-settings [name="whereware_db_user"]');
+            if (dbu) {
+                dbu.value = dbu.value.trim ();
+                settings.whereware_db_user = dbu.value;
+            }
+            this.storageWrite ('whereware',settings);
+        }
+        if (evt && evt.type=='input') {
+            evt.currentTarget.value = evt.currentTarget.value.trim ();
+            settings[evt.currentTarget.getAttribute('name')] = evt.currentTarget.value;
+            this.storageWrite ('whereware',settings);
+            return;
+        }
+        if (evt && evt.type=='click') {
+            evt.preventDefault ();
+            request = {
+                action: evt.currentTarget.dataset.action,
+                table: evt.currentTarget.dataset.table,
+                column: evt.currentTarget.dataset.column,
+                operator: evt.currentTarget.dataset.operator,
+                value: evt.currentTarget.dataset.value
+            };
+            if ('hidden' in evt.currentTarget.dataset) {
+                request.hidden = evt.currentTarget.dataset.hidden;
+            }
+            if ('cancelled' in evt.currentTarget.dataset) {
+                request.cancelled = evt.currentTarget.dataset.cancelled;
+            }
+            this.adminer (request);
+        }
     }
 
     constructor (config) {
@@ -146,7 +272,7 @@ export class Whereware extends Generic {
     }
 
     orderList (container,rows) {
-        var count,dt,dtp,i,k,mod,noresults,sm,order,orders;
+        var count,dt,dtp,i,lk,k,mod,noresults,sm,order,orders;
         // Listen for parameters from new order
         this.qs(container.parentElement,'tr.new [name="order_ref"]').addEventListener ('input',this.orderNew.bind(this));
         // Build the list
@@ -169,6 +295,22 @@ export class Whereware extends Generic {
             k = document.createElement ('td');
             k.classList.add ('to_locations_customer');
             k.textContent = rows[i].to_locations_customer;
+            order.appendChild (k);
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('adminer');
+            lk = document.createElement ('a');
+            lk.classList.add ('whereware-link');
+            lk.dataset.action = 'select';
+            lk.dataset.table = 'ww_move';
+            lk.dataset.cancelled = 0;
+            lk.dataset.hidden = 0;
+            lk.dataset.column = 'order_ref';
+            lk.dataset.operator = '=';
+            lk.dataset.value = rows[i].order_ref;
+            lk.textContent = '↗';
+            lk.addEventListener ('click',this.adminerLink.bind(this));
+            k.appendChild (lk);
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
@@ -282,7 +424,7 @@ export class Whereware extends Generic {
     }
 
     skuList (container,response,composite=false) {
-        var count,dt,dtp,i,k,mod,noresults,sm,sku,skus;
+        var count,dt,dtp,i,lk,k,mod,noresults,sm,sku,skus;
         noresults = this.qs (container,'tr.no-results');
         skus = this.qsa (container,'tr.result');
         for (sku of skus) {
@@ -297,6 +439,21 @@ export class Whereware extends Generic {
             k = document.createElement ('td');
             k.classList.add ('updated');
             k.textContent = response.skus[i].updated;
+            sku.appendChild (k);
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('adminer');
+            lk = document.createElement ('a');
+            lk.classList.add ('whereware-link');
+            lk.dataset.action = 'select';
+            lk.dataset.table = 'ww_sku';
+            lk.dataset.hidden = response.skus[i].hidden;
+            lk.dataset.column = 'sku';
+            lk.dataset.operator = '=';
+            lk.dataset.value = response.skus[i].sku;
+            lk.textContent = '↗';
+            lk.addEventListener ('click',this.adminerLink.bind(this));
+            k.appendChild (lk);
             sku.appendChild (k);
             // Cell:
             k = document.createElement ('td');
