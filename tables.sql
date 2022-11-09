@@ -1,4 +1,3 @@
--- Adminer 4.8.1 MySQL 5.5.62-0+deb8u1 dump
 
 SET NAMES utf8;
 SET time_zone = '+00:00';
@@ -7,7 +6,7 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 CREATE TABLE IF NOT EXISTS `ww_bin` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `bin` char(64) CHARACTER SET ascii NOT NULL,
   `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
@@ -16,27 +15,42 @@ CREATE TABLE IF NOT EXISTS `ww_bin` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
+CREATE TABLE IF NOT EXISTS `ww_booking` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 CREATE TABLE IF NOT EXISTS `ww_composite` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `from_pick` char(64) CHARACTER SET ascii NOT NULL,
-  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
-  KEY `from_pick` (`from_pick`),
-  KEY `to_bin` (`to_bin`),
-  CONSTRAINT `ww_composite_ibfk_1` FOREIGN KEY (`from_pick`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_composite_ibfk_2` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
   CONSTRAINT `ww_composite_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `ww_consignment` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `team` char(64) CHARACTER SET ascii NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `attachment_1` mediumblob DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `team` (`team`),
+  CONSTRAINT `ww_consignment_ibfk_1` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
 CREATE TABLE IF NOT EXISTS `ww_generic` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
   `generic` char(64) CHARACTER SET ascii NOT NULL,
@@ -51,11 +65,144 @@ CREATE TABLE IF NOT EXISTS `ww_generic` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
+CREATE TABLE IF NOT EXISTS `ww_location` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `organisation` char(64) CHARACTER SET ascii NOT NULL,
+  `location` char(64) CHARACTER SET ascii NOT NULL,
+  `name` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `territory` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'GB',
+  `postcode` char(64) CHARACTER SET ascii NOT NULL,
+  `address_1` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `address_2` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `address_3` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `town` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `region` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `location` (`location`),
+  KEY `territory` (`territory`),
+  KEY `postcode` (`postcode`),
+  KEY `organisation` (`organisation`),
+  CONSTRAINT `ww_location_ibfk_1` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE IF NOT EXISTS `ww_move` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `updater` char(64) CHARACTER SET ascii NOT NULL,
+  `project` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
+  `booking_id` int(11) unsigned DEFAULT NULL,
+  `consignment_id` int(11) unsigned DEFAULT NULL,
+  `status` char(1) CHARACTER SET ascii NOT NULL DEFAULT 'R',
+  `quantity` int(11) unsigned NOT NULL,
+  `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `from_location` char(64) CHARACTER SET ascii NOT NULL,
+  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
+  `to_location` char(64) CHARACTER SET ascii NOT NULL,
+  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `attachment_1` mediumblob DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `sku` (`sku`),
+  KEY `from_location` (`from_location`),
+  KEY `to_location` (`to_location`),
+  KEY `status` (`status`),
+  KEY `booking_id` (`booking_id`),
+  KEY `consignment_id` (`consignment_id`),
+  KEY `from_bin` (`from_bin`),
+  KEY `to_bin` (`to_bin`),
+  KEY `project` (`project`),
+  CONSTRAINT `ww_move_location_from` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_move_bin_from` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_move_location_to` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_move_bin_to` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_move_booking` FOREIGN KEY (`booking_id`) REFERENCES `ww_booking` (`id`),
+  CONSTRAINT `ww_move_consignment` FOREIGN KEY (`consignment_id`) REFERENCES `ww_consignment` (`id`),
+  CONSTRAINT `ww_move_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_move_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
+  CONSTRAINT `ww_move_status` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `ww_movelog` (
+  `created` timestamp NOT NULL DEFAULT current_timestamp(),
+  `move_id` int(11) unsigned NOT NULL,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `updater` char(64) CHARACTER SET ascii NOT NULL,
+  `project` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
+  `booking_id` int(11) unsigned DEFAULT NULL,
+  `consignment_id` int(11) unsigned DEFAULT NULL,
+  `status` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'RAISED',
+  `quantity` int(11) unsigned NOT NULL,
+  `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `from_location` char(64) CHARACTER SET ascii NOT NULL,
+  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
+  `to_location` char(64) CHARACTER SET ascii NOT NULL,
+  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
+  PRIMARY KEY (`created`,`move_id`),
+  KEY `ww_movelog_move` (`move_id`),
+  CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `ww_movelog_20220811` (
+  `created` timestamp NOT NULL DEFAULT current_timestamp(),
+  `move_id` int(11) unsigned NOT NULL,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `updater` char(64) CHARACTER SET ascii NOT NULL,
+  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
+  `booking_id` int(11) unsigned DEFAULT NULL,
+  `consignment_id` int(11) unsigned DEFAULT NULL,
+  `status` char(1) CHARACTER SET ascii NOT NULL DEFAULT 'R',
+  `quantity` int(11) unsigned NOT NULL,
+  `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `from_location` char(64) CHARACTER SET ascii NOT NULL,
+  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
+  `to_location` char(64) CHARACTER SET ascii NOT NULL,
+  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
+  PRIMARY KEY (`created`,`move_id`),
+  KEY `ww_movelog_move` (`move_id`),
+  KEY `status` (`status`),
+  KEY `sku` (`sku`),
+  KEY `from_location` (`from_location`),
+  KEY `from_bin` (`from_bin`),
+  KEY `to_location` (`to_location`),
+  KEY `to_bin` (`to_bin`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_1` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_2` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_3` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_4` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_5` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_movelog_20220811_ibfk_6` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `ww_organisation` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `organisation` char(64) CHARACTER SET ascii NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `organisation` (`organisation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS `ww_recent_inventory` (
   `refreshed` datetime DEFAULT NULL COMMENT 'Last time this row was calculated',
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `additional_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `name` varchar(64) CHARACTER SET utf8 NOT NULL,
+  `sku_additional_ref` char(64) CHARACTER SET ascii NOT NULL,
+  `sku_name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
   `location` char(64) CHARACTER SET ascii NOT NULL,
   `bin` char(64) CHARACTER SET ascii NOT NULL,
   `hidden` int(1) unsigned NOT NULL DEFAULT 0,
@@ -79,88 +226,12 @@ CREATE TABLE IF NOT EXISTS `ww_recent_inventory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
-CREATE TABLE IF NOT EXISTS `ww_location` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `location` char(64) CHARACTER SET ascii NOT NULL,
-  `name` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `territory` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'GB',
-  `postcode` char(64) CHARACTER SET ascii NOT NULL,
-  `address_1` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `address_2` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `address_3` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `town` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `region` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `location` (`location`),
-  KEY `territory` (`territory`),
-  KEY `postcode` (`postcode`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-CREATE TABLE IF NOT EXISTS `ww_move` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-  `updater` char(64) CHARACTER SET ascii NOT NULL,
-  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `booking_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `status` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'R',
-  `quantity` int(11) unsigned NOT NULL,
-  `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `from_location` char(64) CHARACTER SET ascii NOT NULL,
-  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
-  `to_location` char(64) CHARACTER SET ascii NOT NULL,
-  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
-  `attachment_1` mediumblob DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `sku` (`sku`),
-  KEY `from_location` (`from_location`),
-  KEY `to_location` (`to_location`),
-  KEY `from_bin` (`from_location`,`from_bin`),
-  KEY `to_bin` (`to_location`,`to_bin`),
-  KEY `status` (`status`),
-  KEY `from_bin_2` (`from_bin`),
-  KEY `to_bin_2` (`to_bin`),
-  CONSTRAINT `ww_move_ibfk_1` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_move_ibfk_2` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_move_ibfk_3` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_move_ibfk_4` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_move_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
-  CONSTRAINT `ww_move_status` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
-CREATE TABLE IF NOT EXISTS `ww_movelog` (
-  `created` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `move_id` int(11) unsigned NOT NULL,
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `updater` char(64) CHARACTER SET ascii NOT NULL,
-  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `status` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'RAISED',
-  `quantity` int(11) unsigned NOT NULL,
-  `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `from_location` char(64) CHARACTER SET ascii NOT NULL,
-  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
-  `to_location` char(64) CHARACTER SET ascii NOT NULL,
-  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
-  PRIMARY KEY (`created`,`move_id`),
-  KEY `ww_movelog_move` (`move_id`),
-  CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
 CREATE TABLE IF NOT EXISTS `ww_sku` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `bin` char(64) CHARACTER SET ascii NOT NULL,
+  `bin` char(64) CHARACTER SET ascii NOT NULL COMMENT 'This field is the current bin but is not a constraint on move from/to bins',
   `additional_ref` char(64) CHARACTER SET ascii NOT NULL,
   `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
@@ -182,9 +253,20 @@ CREATE TABLE IF NOT EXISTS `ww_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
+CREATE TABLE IF NOT EXISTS `ww_team` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `team` char(64) CHARACTER SET ascii NOT NULL,
+  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `team` (`team`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
 CREATE TABLE IF NOT EXISTS `ww_user` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `hidden` int(11) NOT NULL DEFAULT 0,
   `user` char(64) CHARACTER SET ascii NOT NULL,
   `email` char(254) CHARACTER SET ascii NOT NULL COMMENT 'Eventually this will point to the API user',
@@ -198,7 +280,7 @@ CREATE TABLE IF NOT EXISTS `ww_user` (
 
 CREATE TABLE IF NOT EXISTS `ww_variant` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `generic` char(64) CHARACTER SET ascii NOT NULL,
   `give_preference` tinyint(1) unsigned NOT NULL DEFAULT 0,
@@ -215,7 +297,7 @@ CREATE TABLE IF NOT EXISTS `ww_variant` (
 
 CREATE TABLE IF NOT EXISTS `ww_web` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `updated` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   `hidden` int(1) unsigned NOT NULL DEFAULT 0,
   `user` char(64) NOT NULL,
   `group` char(64) NOT NULL COMMENT 'Eventually this will point to the API user group',
@@ -230,4 +312,5 @@ CREATE TABLE IF NOT EXISTS `ww_web` (
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii;
 
 
--- 2022-03-23 20:19:34
+
+

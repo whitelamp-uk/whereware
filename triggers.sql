@@ -35,10 +35,6 @@ BEFORE INSERT ON `ww_composite` FOR EACH ROW
 BEGIN
   SET NEW.`sku` = UPPER(NEW.`sku`)
   ;
-  SET NEW.`from_pick` = UPPER(NEW.`from_pick`)
-  ;
-  SET NEW.`to_bin` = UPPER(NEW.`to_bin`)
-  ;
 END$$
 
 DELIMITER $$
@@ -47,10 +43,6 @@ CREATE TRIGGER `wwCompositeOnBeforeUpdate`
 BEFORE UPDATE ON `ww_composite` FOR EACH ROW
 BEGIN
   SET NEW.`sku` = UPPER(NEW.`sku`)
-  ;
-  SET NEW.`from_pick` = UPPER(NEW.`from_pick`)
-  ;
-  SET NEW.`to_bin` = UPPER(NEW.`to_bin`)
   ;
 END$$
 
@@ -117,6 +109,8 @@ BEGIN
   ;
   SET NEW.`updater` = usr
   ;
+  SET NEW.`project` = UPPER(NEW.`project`)
+  ;
   SET NEW.`order_ref` = UPPER(NEW.`order_ref`)
   ;
   SET NEW.`status` = UPPER(NEW.`status`)
@@ -141,16 +135,16 @@ AFTER INSERT ON `ww_move` FOR EACH ROW
 BEGIN
   INSERT INTO `ww_movelog` (
     `move_id`,`created`,
-    `hidden`,`cancelled`,
-    `updater`,`order_ref`,
+    `hidden`,`cancelled`,`updater`,
+    `project`,`order_ref`,`booking_id`,`consignment_id`,
     `status`,`quantity`,`sku`,
     `from_location`,`from_bin`,
     `to_location`,`to_bin`
   )
   VALUES (
     NEW.`id`,NOW(),
-    NEW.`hidden`,NEW.`cancelled`,
-    NEW.`updater`,NEW.`order_ref`,
+    NEW.`hidden`,NEW.`cancelled`,NEW.`updater`,
+    NEW.`project`,NEW.`order_ref`,NEW.`booking_id`,NEW.`consignment_id`,
     NEW.`status`,NEW.`quantity`,NEW.`sku`,
     NEW.`from_location`,NEW.`from_bin`,
     NEW.`to_location`,NEW.`to_bin`
@@ -170,6 +164,8 @@ BEGIN
   SET NEW.`hidden` = IF(NEW.`cancelled`>0,1,NEW.`hidden`)
   ;
   SET NEW.`updater` = usr
+  ;
+  SET NEW.`project` = UPPER(NEW.`project`)
   ;
   SET NEW.`order_ref` = UPPER(NEW.`order_ref`)
   ;
@@ -195,16 +191,16 @@ AFTER UPDATE ON `ww_move` FOR EACH ROW
 BEGIN
   INSERT INTO `ww_movelog` (
     `move_id`,`created`,
-    `hidden`,`cancelled`,
-    `updater`,`order_ref`,
+    `hidden`,`cancelled`,`updater`,
+    `project`,`order_ref`,`booking_id`,`consignment_id`,
     `status`,`quantity`,`sku`,
     `from_location`,`from_bin`,
     `to_location`,`to_bin`
   )
   VALUES (
     NEW.`id`,NOW(),
-    NEW.`hidden`,NEW.`cancelled`,
-    NEW.`updater`,NEW.`order_ref`,
+    NEW.`hidden`,NEW.`cancelled`,NEW.`updater`,
+    NEW.`project`,NEW.`order_ref`,NEW.`booking_id`,NEW.`consignment_id`,
     NEW.`status`,NEW.`quantity`,NEW.`sku`,
     NEW.`from_location`,NEW.`from_bin`,
     NEW.`to_location`,NEW.`to_bin`
@@ -222,16 +218,16 @@ BEGIN
   SELECT USER() INTO usr;
   INSERT INTO `ww_movelog` (
     `move_id`,`created`,
-    `hidden`,`cancelled`,
-    `updater`,`order_ref`,
+    `hidden`,`cancelled`,`updater`,
+    `project`,`order_ref`,`booking_id`,`consignment_id`,
     `status`,`quantity`,`sku`,
     `from_location`,`from_bin`,
     `to_location`,`to_bin`
   )
   VALUES (
     OLD.`id`,NOW(),
-    OLD.`hidden`,OLD.`cancelled`,
-    usr,OLD.`order_ref`,
+    OLD.`hidden`,OLD.`cancelled`,usr,
+    OLD.`project`,OLD.`order_ref`,OLD.`booking_id`,OLD.`consignment_id`,
     'DELETED',OLD.`quantity`,OLD.`sku`,
     OLD.`from_location`,OLD.`from_bin`,
     OLD.`to_location`,OLD.`to_bin`
