@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS `ww_composite` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `is_refresh` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
