@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `ww_consignment` (
   `attachment_1` mediumblob DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `team` (`team`),
-  CONSTRAINT `ww_consignment_ibfk_1` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
+  CONSTRAINT `ww_consignment_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `ww_location` (
   KEY `territory` (`territory`),
   KEY `postcode` (`postcode`),
   KEY `organisation` (`organisation`),
-  CONSTRAINT `ww_location_ibfk_1` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
+  CONSTRAINT `ww_location_organisation` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -119,10 +119,10 @@ CREATE TABLE IF NOT EXISTS `ww_move` (
   KEY `from_bin` (`from_bin`),
   KEY `to_bin` (`to_bin`),
   KEY `project` (`project`),
-  CONSTRAINT `ww_move_location_from` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_move_bin_from` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_move_location_to` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_move_bin_to` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_move_from_location` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_move_from_bin` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
+  CONSTRAINT `ww_move_to_location` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_move_to_bin` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
   CONSTRAINT `ww_move_booking` FOREIGN KEY (`booking_id`) REFERENCES `ww_booking` (`id`),
   CONSTRAINT `ww_move_consignment` FOREIGN KEY (`consignment_id`) REFERENCES `ww_consignment` (`id`),
   CONSTRAINT `ww_move_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
@@ -154,40 +154,6 @@ CREATE TABLE IF NOT EXISTS `ww_movelog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
-CREATE TABLE IF NOT EXISTS `ww_movelog_20220811` (
-  `created` timestamp NOT NULL DEFAULT current_timestamp(),
-  `move_id` int(11) unsigned NOT NULL,
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `updater` char(64) CHARACTER SET ascii NOT NULL,
-  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `booking_id` int(11) unsigned DEFAULT NULL,
-  `consignment_id` int(11) unsigned DEFAULT NULL,
-  `status` char(1) CHARACTER SET ascii NOT NULL DEFAULT 'R',
-  `quantity` int(11) unsigned NOT NULL,
-  `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `from_location` char(64) CHARACTER SET ascii NOT NULL,
-  `from_bin` char(64) CHARACTER SET ascii NOT NULL,
-  `to_location` char(64) CHARACTER SET ascii NOT NULL,
-  `to_bin` char(64) CHARACTER SET ascii NOT NULL,
-  PRIMARY KEY (`created`,`move_id`),
-  KEY `ww_movelog_move` (`move_id`),
-  KEY `status` (`status`),
-  KEY `sku` (`sku`),
-  KEY `from_location` (`from_location`),
-  KEY `from_bin` (`from_bin`),
-  KEY `to_location` (`to_location`),
-  KEY `to_bin` (`to_bin`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_1` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_2` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_3` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_4` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_5` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_movelog_20220811_ibfk_6` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
 CREATE TABLE IF NOT EXISTS `ww_organisation` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
@@ -196,6 +162,21 @@ CREATE TABLE IF NOT EXISTS `ww_organisation` (
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `organisation` (`organisation`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
+CREATE TABLE IF NOT EXISTS `ww_project` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `organisation` char(64) CHARACTER SET ascii NOT NULL,
+  `project` char(64) CHARACTER SET ascii NOT NULL,
+  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `sku` (`project`),
+  KEY `organisation` (`organisation`),
+  CONSTRAINT `ww_project_organisation` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
@@ -239,7 +220,7 @@ CREATE TABLE IF NOT EXISTS `ww_sku` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
   KEY `bin` (`bin`),
-  CONSTRAINT `ww_sku_ibfk_1` FOREIGN KEY (`bin`) REFERENCES `ww_bin` (`bin`)
+  CONSTRAINT `ww_sku_bin` FOREIGN KEY (`bin`) REFERENCES `ww_bin` (`bin`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
@@ -308,8 +289,8 @@ CREATE TABLE IF NOT EXISTS `ww_web` (
   UNIQUE KEY `allow_user_location` (`group`,`user`,`location`),
   KEY `user` (`user`),
   KEY `location` (`location`),
-  CONSTRAINT `ww_web_ibfk_1` FOREIGN KEY (`user`) REFERENCES `ww_user` (`user`),
-  CONSTRAINT `ww_web_ibfk_2` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`)
+  CONSTRAINT `ww_web_user` FOREIGN KEY (`user`) REFERENCES `ww_user` (`user`),
+  CONSTRAINT `ww_web_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`)
 ) ENGINE=InnoDB DEFAULT CHARSET=ascii;
 
 
