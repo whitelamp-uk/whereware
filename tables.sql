@@ -29,7 +29,6 @@ CREATE TABLE IF NOT EXISTS `ww_composite` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `is_refresh` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
@@ -208,6 +207,19 @@ CREATE TABLE IF NOT EXISTS `ww_recent_inventory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
+CREATE TABLE `ww_refresh` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `order_ref` char(64) CHARACTER SET ascii NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `sku` (`sku`),
+  CONSTRAINT `ww_refresh_composite` FOREIGN KEY (`sku`) REFERENCES `ww_composite` (`sku`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS `ww_sku` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
@@ -240,6 +252,7 @@ CREATE TABLE IF NOT EXISTS `ww_team` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `team` char(64) CHARACTER SET ascii NOT NULL,
+  `name` varchar(64) NOT NULL AFTER `team`,
   `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `team` (`team`)

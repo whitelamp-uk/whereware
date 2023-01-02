@@ -138,6 +138,7 @@ export class Whereware extends Generic {
     constructor (config) {
         super (config);
         this.data.whereware = {};
+        window.addEventListener ('focus',this.refreshesFocus.bind(this));
     }
 
     async componentsRequest (searchTerms) {
@@ -330,8 +331,8 @@ export class Whereware extends Generic {
             k.classList.add ('navigator');
             k.dataset.insert = 'book';
             k.dataset.target = 'orders';
-            k.dataset.parameter = 'wherewareSkuOrder';
-            k.dataset.value = this.parameters.wherewareSku+'::'+rows[i].order_ref;
+            k.dataset.parameter = 'wherewareOrder';
+            k.dataset.value = rows[i].order_ref;
             order.appendChild (k);
             // Append row
             container.appendChild (order);
@@ -353,7 +354,7 @@ export class Whereware extends Generic {
         var btn,ord;
         evt.currentTarget.value = evt.currentTarget.value.replace (' ','');
         btn = this.qs (evt.currentTarget.parentElement.parentElement,'td.button.new');
-        btn.dataset.value = this.parameters.wherewareSku + '::' + evt.currentTarget.value;
+        btn.dataset.value = evt.currentTarget.value;
     }
 
     async ordersRequest ( ) {
@@ -382,44 +383,321 @@ export class Whereware extends Generic {
         }
     }
 
-    async picklistRequest (btn) {
-        var args,is_new,location,request,response;
-        args = this.parameters.wherewareSkuOrder.split ('::');
-        this.parameters.wherewareOrder = args[1];
-        this.parameters.wherewareLocation = btn.dataset.location;
-        if (this.parameters.wherewareOrder) {
-            is_new = 0;
-            if ('new' in btn.dataset) {
-                is_new = 1;
-            }
-            request     = {
-                "email" : this.access.email.value
-               ,"method" : {
-                    "vendor" : "whereware"
-                   ,"package" : "whereware-server"
-                   ,"class" : "\\Whereware\\Whereware"
-                   ,"method" : "picklist"
-                   ,"arguments" : [
-                        this.parameters.wherewareSku,
-                        this.parameters.wherewareOrder,
-                        is_new
-                   ]
-                }
-            }
-            try {
-                response = await this.request (request);
-                this.data.whereware.generics = response.returnValue;
-                return response.returnValue;
-            }
-            catch (e) {
-                console.log ('picklistRequest(): could not get pick list for "'+this.parameters.wherewareSkuOrder+'": '+e.message);
-                return false;
+    async picklistRequest (sku) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "picklist"
+               ,"arguments" : [
+                    sku
+               ]
             }
         }
-        else {
-            console.log ('picklistRequest(): order reference not given for SKU="'+this.parameters.wherewareSku+'"');
-            this.data.whereware.generics = [];
-            return [];
+        try {
+            response = await this.request (request);
+            this.data.whereware.generics = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('picklistRequest(): could not get pick list for "'+sku+'": '+e.message);
+            return false;
+        }
+    }
+
+    async picklistRequestPickNBook ( ) {
+        var rtn;
+        try {
+            rtn = await this.picklistRequest (this.parameters.wherewareSku);
+            return rtn;
+        }
+        catch (e) {
+            return false;
+        }
+    }
+
+    async refreshesCalculate ( ) {
+        var b,buttons,g,p,q,qty,quantities;
+        if (!('picklists' in this.data.whereware.refreshes)) {
+            this.data.whereware.refreshes.picklists = [];
+        }
+        qty = 0;
+        quantities = this.qsa (this.restricted,'.spreadsheet-cell input.spreadsheet-cell-integer');
+        for (q of quantities) {
+            qty += 1 * q.value;
+            p = this.find (this.data.whereware.refreshes.picklists,'sku',q.dataset.sku);
+            if (!p) {
+                try {
+                    g = await this.picklistRequest (q.dataset.sku);
+                    p = {
+                        sku: q.dataset.sku,
+                        generics: g
+                    }
+                    this.data.whereware.refreshes.picklists.push (p);
+                }
+                catch (e) {
+                    this.statusShow ('Could not fetch picklist');
+                    return false;
+                }
+            }
+        }
+        // Toggle button for next stage
+        buttons = this.qsa (this.restricted,'.whereware-refreshes-book');
+        for (b of buttons) {
+            if (qty>0) {
+                b.disabled = false;
+            }
+            else {
+                b.disabled = true;
+            }
+        }
+    }
+
+    refreshesFocus (evt) {
+        if (evt.currentTarget==window) {
+            this.refreshesFocusInhibit = true;
+            setTimeout (this.refreshesFocusEnable.bind(this),100);
+            return;
+        }
+        if (!this.refreshesFocusInhibit) {
+            evt.currentTarget.select ();
+        }
+    }
+
+    refreshesFocusEnable (evt) {
+        this.refreshesFocusInhibit = false;
+    }
+
+    refreshesInputInteger (evt) {
+        evt.currentTarget.value = this.refreshesLimitInteger (evt.currentTarget.value);
+        this.refreshesCalculate ();
+    }
+
+
+    refreshesKeydown (evt) {
+        var i,input,inputs,move,p,q,r,row,rows,tbody;
+        // Use arrow keys for spreadsheet-like navigation
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(evt.key) && !evt.shiftKey && !evt.ctrlKey) {
+            evt.preventDefault ();
+            row = evt.currentTarget.closest ('tr');
+            inputs = this.qsa (row,'.spreadsheet-cell input, .spreadsheet-cell select');
+            i = 0;
+            for (input of inputs) {
+                if (input==evt.currentTarget) {
+                    p = i;
+                }
+                i++;
+            }
+            if (evt.key=='ArrowLeft') {
+                // Focus the previous input in the same row
+                p--;
+            }
+            if (evt.key=='ArrowRight') {
+                // Focus the next input in the same row
+                p++;
+            }
+            if (p<0) {
+                p = i - 1;
+            }
+            if (p>=i) {
+                p = 0;
+            }
+            tbody = row.closest ('tbody');
+            rows = this.qsa (tbody,'tr.result');
+            i = 0;
+            for (r of rows) {
+                if (r==row) {
+                    q = i;
+                }
+                i++;
+            }
+            if (evt.key=='ArrowUp') {
+                // Focus the same input in the previous row
+                q--;
+            }
+            if (evt.key=='ArrowDown') {
+                // Focus the same input in the next row
+                q++;
+            }
+            if (q<0) {
+                q = i - 1;
+            }
+            if (q>=i) {
+                q = 0;
+            }
+            row = rows.item (q);
+            inputs = this.qsa (row,'.spreadsheet-cell input, .spreadsheet-cell select');
+            inputs.item(p).select ();
+        }
+        // Interfere if necessary
+        return true;
+    }
+
+    refreshesKeydownInteger (evt) {
+        var val;
+        if (!(/[0-9]/.test(evt.key))) {
+            if (evt.ctrlKey || evt.key=='Backspace' || evt.key=='Delete') {
+                // Do not interfere
+            }
+            else {
+                // Suppress
+                evt.preventDefault ();
+                if (!(/[0-9]/.test(evt.key))) {
+                    // Hot key options: use +/- to change integer values
+                    if (evt.key=='+' || evt.key=='-') {
+                        val = this.refreshesLimitInteger (evt.currentTarget.value);
+                        if (evt.key=='+') {
+                            val++;
+                        }
+                        else {
+                            val--;
+                        }
+                        evt.currentTarget.value = this.refreshesLimitInteger (val);
+                    }
+                }
+           }
+        }
+    }
+
+    refreshesLimitInteger (i) {
+        var neg;
+        // Sometimes a string, sometimes not
+        i = '' + i;
+        neg = false;
+        if (i.indexOf('-')==0) {
+            neg = true;
+            i = i.substr (1);
+        }
+        i = i.replace (/\D/g,'');
+        if (i.length==0) {
+            i = 0;
+        }
+        i *= 1;
+        if (neg) {
+            i = 0 - i;
+        }
+        if (i>99) {
+            i = 99;
+        }
+        if (i<0) {
+            i = 0;
+        }
+        return i;
+    }
+
+    refreshesList (trColumns,tbodyRows) {
+        var count,dt,dtp,i,input,j,lk,k,mod,noresults,refreshes,sm,span,team,topleft;
+        for (i=0;this.data.whereware.refreshes.skus[i];i++) {
+            // Cell:
+            k = document.createElement ('th');
+            k.classList.add ('sku');
+            k.setAttribute ('title','Order '+this.data.whereware.refreshes.skus[i].refresh_order_ref);
+            span = document.createElement ('span');
+            span.setAttribute ('title','Order '+this.data.whereware.refreshes.skus[i].refresh_order_ref);
+            span.textContent = this.data.whereware.refreshes.skus[i].sku;
+            k.appendChild (span);
+            trColumns.appendChild (k);
+        }
+        noresults = this.qs (tbodyRows,'tr.no-results');
+        count = 0;
+        for (j=0;this.data.whereware.teams[j];j++) {
+            if (this.data.whereware.teams[j].hidden) {
+                continue;
+            }
+            count++;
+            team = document.createElement ('tr');
+            team.classList.add ('result');
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('adminer');
+            lk = document.createElement ('a');
+            lk.classList.add ('whereware-link');
+            lk.dataset.action = 'select';
+            lk.dataset.table = 'ww_team';
+            lk.dataset.column = 'team';
+            lk.dataset.operator = '=';
+            lk.dataset.value = this.data.whereware.teams[j].team;
+            lk.textContent = '↗';
+            lk.addEventListener ('click',this.adminerLink.bind(this));
+            k.appendChild (lk);
+            team.appendChild (k);
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('team');
+            k.textContent = this.data.whereware.teams[j].team;
+            team.appendChild (k);
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('name');
+            k.textContent = this.data.whereware.teams[j].name;
+            team.appendChild (k);
+            // Cell:
+            k = document.createElement ('td');
+            k.classList.add ('notes');
+            dt = document.createElement ('details');
+            sm = document.createElement ('summary');
+            sm.textContent = 'Notes';
+            dt.appendChild (sm);
+            dtp = document.createElement ('p');
+            dtp.textContent = this.data.whereware.teams[j].notes;
+            dtp.addEventListener ('click',function(evt){evt.currentTarget.parentElement.open=false});
+            dt.appendChild (dtp);
+            k.appendChild (dt);
+            team.appendChild (k);
+            for (i=0;this.data.whereware.refreshes.skus[i];i++) {
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                input = document.createElement ('input');
+                input.classList.add ('spreadsheet-cell-integer');
+                input.dataset.team = this.data.whereware.teams[j].team;
+                input.dataset.sku = this.data.whereware.refreshes.skus[i].sku;
+                input.setAttribute ('value',0);
+                input.addEventListener ('focus',this.refreshesFocus.bind(this));
+                input.addEventListener ('keydown',this.refreshesKeydown.bind(this));
+                input.addEventListener ('keydown',this.refreshesKeydownInteger.bind(this));
+                input.addEventListener ('input',this.refreshesInputInteger.bind(this));
+                k.appendChild (input);
+                team.appendChild (k);
+                if (j==0 && i==0) {
+                    topleft = input;
+                }
+            }
+            // Append row
+            tbodyRows.appendChild (team);
+        }
+        this.navigatorsListen (tbodyRows);
+        if (count>0) {
+            noresults.classList.add ('hidden');
+        }
+        topleft.select ();
+        return count;
+    }
+
+    async refreshesRequest (btn) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "refreshes"
+               ,"arguments" : [
+               ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.refreshes = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('refreshesRequest(): could not get refreshes SKU list: '+e.message);
+            return false;
         }
     }
 
@@ -507,6 +785,30 @@ export class Whereware extends Generic {
             noresults.classList.add ('hidden');
         }
         return count;
+    }
+
+    async teamsRequest ( ) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "teams"
+               ,"arguments" : [
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.teams = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('teamsRequest(): could not get teams: '+e.message);
+            return false;
+        }
     }
 
 }

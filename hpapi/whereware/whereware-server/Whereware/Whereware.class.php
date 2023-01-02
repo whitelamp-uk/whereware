@@ -83,11 +83,11 @@ class Whereware {
     }
 
     public function components ($search_terms) {
-        return $this->skus ($search_terms,1,0);
+        return $this->skus ($search_terms,1,0,0);
     }
 
     public function composites ($search_terms) {
-        return $this->skus ($search_terms,0,1);
+        return $this->skus ($search_terms,0,1,0);
     }
 
     public function config ( ) {
@@ -127,12 +127,19 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
-/*
         $out->constants = new \StdClass ();
-        $out->constants->WHEREWARE_LOCATION_ASSEMBLY = WHEREWARE_LOCATION_ASSEMBLY;
-        $out->constants->WHEREWARE_LOCATION_COMPONENT = WHEREWARE_LOCATION_COMPONENT;
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT = WHEREWARE_LOCATION_GOODSOUT;
-*/
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY                = new \stdClass ();
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL             = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_COMPONENT               = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT                = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value         = WHEREWARE_LOCATION_ASSEMBLY;
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->value      = WHEREWARE_ASSEMBLY_AUTO_FULFIL ? 'Yes' : 'No';
+        $out->constants->WHEREWARE_LOCATION_COMPONENT->value        = WHEREWARE_LOCATION_COMPONENT;
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT->value         = WHEREWARE_LOCATION_GOODSOUT;
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition    = 'Assembly location code for automatic composite creation';
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->definition = 'Automatic fulfilment from assembly to goods out (pick list straight to goods out)';
+        $out->constants->WHEREWARE_LOCATION_COMPONENT->definition   = 'Warehouse code for finding/selecting component bins';
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT->definition    = 'Warehouse code for finding/selecting goods-out bins';
         return $out;
     }
 
@@ -191,7 +198,7 @@ class Whereware {
         }
         $moves[] = [
             'order_ref' => $obj->order_ref,
-            'status' => 'R',
+            'status' => $status,
             'quantity' => $obj->composite_quantity,
             'sku' => $obj->composite_sku,
             'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
@@ -359,23 +366,9 @@ class Whereware {
         return $number;
     }
 
-    public function picklist ($sku,$order_ref,$new=false) {
+    public function picklist ($sku) {
         $picklist = [];
         try {
-            $result = $this->hpapi->dbCall (
-                'wwOrder',
-                $order_ref
-            );
-            if (count($result)) {
-                if ($new) {
-                    throw new \Exception (WHEREWARE_STR_ORDER_NOT_NEW);
-                    return false;
-                }
-            }
-            elseif (!$new) {
-                throw new \Exception (WHEREWARE_STR_ORDER_NOT_FOUND);
-                return false;
-            }
             $result = $this->hpapi->dbCall (
                 'wwPick',
                 $sku
@@ -397,7 +390,6 @@ class Whereware {
                 $o = explode (':',$o);
                 $c->sku = $o[0];
                 $c->name = $o[1];
-
                 try {
                     $rows = $this->hpapi->dbCall (
                         'wwInventory',
@@ -424,6 +416,10 @@ class Whereware {
             $picklist[] = $item;
         }
         return $picklist;
+    }
+
+    public function refreshes ( ) {
+        return $this->skus ('',0,0,1);
     }
 
     public function report ($args) {
@@ -547,13 +543,18 @@ class Whereware {
         return false;
     }
 
-    public function skus ($search_terms,$show_components=1,$show_composites=1) {
+    public function skus ($search_terms,$show_components=1,$show_composites=1,$show_refreshes=1) {
         $limit = WHEREWARE_RESULTS_LIMIT;
         $rtn = new \stdClass ();
-        $rtn->sql = "CALL `wwSkus`('','','','')";
+        $rtn->sql = "CALL `wwSkus`('','','','','')";
         $rtn->skus = [];
-        if ($like=$this->searchLike($search_terms)) {
-            $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$show_composites,$limit);";
+        $like = $this->searchLike ($search_terms);
+        if ($like===false && $show_components==0 && $show_composites==0) {
+            // Search terms not compulsory for refreshes which are a limited list anyway
+            $like = '';
+        }
+        if ($like!==false) {
+            $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$show_refreshes,$limit);";
             $limit++;
             try {
                 $result = $this->hpapi->dbCall (
@@ -561,6 +562,7 @@ class Whereware {
                     $like,
                     $show_components,
                     $show_composites,
+                    $show_refreshes,
                     $limit
                 );
             }
@@ -621,6 +623,20 @@ class Whereware {
                 'wwStock',
                 $location,
                 $sku
+            );
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        return $this->hpapi->parse2D ($result);
+    }
+
+    public function teams ( ) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwTeams'
             );
         }
         catch (\Exception $e) {

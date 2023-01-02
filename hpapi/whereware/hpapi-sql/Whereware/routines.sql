@@ -237,14 +237,6 @@ BEGIN
   FROM `ww_move` AS `m`
   WHERE `cancelled`=0
     AND `order_ref`=orderRef
---  JOIN (
---    SELECT
---      `sku`
---     ,MIN(`created`) AS `created`
---    FROM `ww_movelog`
---    GROUP BY `sku`
---  ) AS `lg`
---    ON `lg`.`sku`=`m`.`sku`
   LIMIT 0,1
   ;
 END$$
@@ -263,24 +255,15 @@ BEGIN
    ,COUNT(DISTINCT IFNULL(`booking_id`,0)) AS `bookings`
    ,GROUP_CONCAT(DISTINCT `m`.`to_location` SEPARATOR ', ') AS `to_locations`
    ,GROUP_CONCAT(DISTINCT `l`.`name` SEPARATOR ', ') AS `to_locations_customer`
---   ,`lg`.`created`
+   ,MAX(`m`.`updated`) AS `order_updated`
   FROM `ww_move` AS `m`
---  JOIN (
---    SELECT
---      `sku`
---     ,MIN(`created`) AS `created`
---    FROM `ww_movelog`
---    GROUP BY `sku`
---  ) AS `lg`
---    ON `lg`.`sku`=`m`.`sku`
   LEFT JOIN `ww_location` as `l`
     ON `l`.`location`=`m`.`to_location`
    AND `l`.`location` LIKE CONCAT(customersLike,'%')
   WHERE `m`.`cancelled`=0
     AND `m`.`sku`=sku
   GROUP BY `m`.`order_ref`
---  ORDER BY `lg`.`created` DESC
-  ORDER BY `m`.`order_ref` DESC
+  ORDER BY `order_updated` DESC
   LIMIT 0,rowsLimit
   ;
 END$$
@@ -317,6 +300,7 @@ CREATE PROCEDURE `wwSkus`(
   IN `likeString` varchar(64) CHARSET ascii
  ,IN `includeComponents` int(1) UNSIGNED
  ,IN `includeComposites` int(1) UNSIGNED
+ ,IN `includeRefreshes` int(1) UNSIGNED
  ,IN `rowsLimit` int(11) UNSIGNED
 )
 BEGIN
@@ -324,6 +308,9 @@ BEGIN
     `s`.`updated`
    ,`s`.`hidden`
    ,`s`.`sku`
+   ,`c`.`sku` IS NOT NULL AS `is_composite`
+   ,`r`.`sku` IS NOT NULL AS `is_refresh`
+   ,`r`.`order_ref` AS `refresh_order_ref`
    ,`s`.`bin`
    ,`s`.`additional_ref`
    ,`s`.`name`
@@ -338,6 +325,8 @@ BEGIN
   FROM `ww_sku` AS `s`
   LEFT JOIN `ww_composite` AS `c`
          ON `c`.`sku`=`s`.`sku`
+  LEFT JOIN `ww_refresh` AS `r`
+         ON `r`.`sku`=`c`.`sku`
   WHERE (
        likeString IS NULL
     OR likeString=''
@@ -352,7 +341,13 @@ BEGIN
     )
     AND (
          includeComposites>0
+      OR includeRefreshes>0
       OR `c`.`sku` IS NULL
+    )
+    AND (
+         includeComposites>0
+      OR includeRefreshes=0
+      OR `r`.`sku` IS NOT NULL
     )
     ORDER BY
       `by_updated`
@@ -375,6 +370,20 @@ BEGIN
     *
   FROM `ww_status`
   ORDER BY `id`
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwTeams`$$
+CREATE PROCEDURE `wwTeams`(
+)
+BEGIN
+  SELECT
+    *
+  FROM `ww_team`
+  WHERE `team`!=''
+  ORDER BY `team`
   ;
 END$$
 
