@@ -556,6 +556,7 @@ export class Whereware extends Generic {
                             val--;
                         }
                         evt.currentTarget.value = this.refreshesLimitInteger (val);
+                        this.refreshesCalculate ();
                     }
                 }
            }
