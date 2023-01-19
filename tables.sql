@@ -69,23 +69,21 @@ CREATE TABLE IF NOT EXISTS `ww_location` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `organisation` char(64) CHARACTER SET ascii NOT NULL,
   `location` char(64) CHARACTER SET ascii NOT NULL,
   `name` varchar(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
   `territory` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'GB',
-  `postcode` char(64) CHARACTER SET ascii NOT NULL,
-  `address_1` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `address_2` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `address_3` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `town` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `region` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `postcode` char(64) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `address_1` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `address_2` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `address_3` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `town` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `region` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `map_url` varchar(255) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `location` (`location`),
   KEY `territory` (`territory`),
-  KEY `postcode` (`postcode`),
-  KEY `organisation` (`organisation`),
-  CONSTRAINT `ww_location_organisation` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
+  KEY `postcode` (`postcode`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
@@ -153,29 +151,15 @@ CREATE TABLE IF NOT EXISTS `ww_movelog` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
-CREATE TABLE IF NOT EXISTS `ww_organisation` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `organisation` char(64) CHARACTER SET ascii NOT NULL,
-  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `organisation` (`organisation`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
-
-
 CREATE TABLE IF NOT EXISTS `ww_project` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `organisation` char(64) CHARACTER SET ascii NOT NULL,
   `project` char(64) CHARACTER SET ascii NOT NULL,
   `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `sku` (`project`),
-  KEY `organisation` (`organisation`),
-  CONSTRAINT `ww_project_organisation` FOREIGN KEY (`organisation`) REFERENCES `ww_organisation` (`organisation`)
+  UNIQUE KEY `sku` (`project`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
