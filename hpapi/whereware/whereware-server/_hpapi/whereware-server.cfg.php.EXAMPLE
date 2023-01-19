@@ -1,23 +1,23 @@
 <?php
 
 // Minutes to add to "now"
-define ( 'WHEREWARE_TOKEN_LIFE_MINS',       10                      );
+define ( 'WHEREWARE_TOKEN_LIFE_MINS',           10                      );
 
 // Verification code persistence in seconds
-define ( 'WHEREWARE_VERIFY_TIME',           300                     );
+define ( 'WHEREWARE_VERIFY_TIME',               300                     );
 
 
-define ( 'WHEREWARE_RESULTS_LIMIT',         1000                    );
+define ( 'WHEREWARE_RESULTS_LIMIT',             1000                    );
 
-define ( 'WHEREWARE_ADMINER_URL',           '/whereware/stores/'    );
+define ( 'WHEREWARE_ADMINER_URL',               '/whereware/stores/'    );
 
-define ( 'WHEREWARE_TEMPLATE_GLOB',         './template/*.hbs'      );
+define ( 'WHEREWARE_TEMPLATE_GLOB',             './template/*.hbs'      );
 
 
 // Stock locations
-define ( 'WHEREWARE_LOCATION_ASSEMBLY',     'A-1'                   );
-define ( 'WHEREWARE_LOCATION_COMPONENT',    'W-1'                   );
-define ( 'WHEREWARE_LOCATION_GOODSOUT',     'W-1'                   );
-define ( 'WHEREWARE_LOCATIONS_CUSTOMERS',   'C-'                    );
-define ( 'WHEREWARE_ASSEMBLY_AUTO_FULFIL',  true                    );
+define ( 'WHEREWARE_LOCATION_ASSEMBLY',         'A-1'                   );
+define ( 'WHEREWARE_LOCATION_COMPONENT',        'W-1'                   );
+define ( 'WHEREWARE_LOCATION_GOODSOUT',         'W-1'                   );
+define ( 'WHEREWARE_LOCATIONS_DESTINATIONS',    'D-'                    );
+define ( 'WHEREWARE_ASSEMBLY_AUTO_FULFIL',      true                    );
 

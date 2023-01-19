@@ -246,7 +246,7 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwOrders`$$
 CREATE PROCEDURE `wwOrders`(
   IN `sku` char(64) CHARSET ascii
- ,IN `customersLike` char(64) CHARSET ascii
+ ,IN `destinationsLike` char(64) CHARSET ascii
  ,IN `rowsLimit` int(11) UNSIGNED
 )
 BEGIN
@@ -254,12 +254,12 @@ BEGIN
     `m`.`order_ref`
    ,COUNT(DISTINCT IFNULL(`booking_id`,0)) AS `bookings`
    ,GROUP_CONCAT(DISTINCT `m`.`to_location` SEPARATOR ', ') AS `to_locations`
-   ,GROUP_CONCAT(DISTINCT `l`.`name` SEPARATOR ', ') AS `to_locations_customer`
+   ,GROUP_CONCAT(DISTINCT `l`.`name` SEPARATOR ', ') AS `to_locations_destination`
    ,MAX(`m`.`updated`) AS `order_updated`
   FROM `ww_move` AS `m`
   LEFT JOIN `ww_location` as `l`
     ON `l`.`location`=`m`.`to_location`
-   AND `l`.`location` LIKE CONCAT(customersLike,'%')
+   AND `l`.`location` LIKE CONCAT(destinationsLike,'%')
   WHERE `m`.`cancelled`=0
     AND `m`.`sku`=sku
   GROUP BY `m`.`order_ref`

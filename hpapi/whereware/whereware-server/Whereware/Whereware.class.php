@@ -112,9 +112,9 @@ class Whereware {
             );
             $out->locations = $this->hpapi->parse2D ($result);
             foreach ($out->locations as $i=>$locn) {
-                $out->locations[$i]->is_customer = false;
-                if (strpos($out->locations[$i]->location,WHEREWARE_LOCATIONS_CUSTOMERS)===0) {
-                    $out->locations[$i]->is_customer = true;
+                $out->locations[$i]->is_destination = false;
+                if (strpos($out->locations[$i]->location,WHEREWARE_LOCATIONS_DESTINATIONS)===0) {
+                    $out->locations[$i]->is_destination = true;
                 }
             }
             $result = $this->hpapi->dbCall (
@@ -128,18 +128,21 @@ class Whereware {
             return false;
         }
         $out->constants = new \StdClass ();
-        $out->constants->WHEREWARE_LOCATION_ASSEMBLY                = new \stdClass ();
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL             = new \stdClass ();
-        $out->constants->WHEREWARE_LOCATION_COMPONENT               = new \stdClass ();
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT                = new \stdClass ();
-        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value         = WHEREWARE_LOCATION_ASSEMBLY;
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->value      = WHEREWARE_ASSEMBLY_AUTO_FULFIL ? 'Yes' : 'No';
-        $out->constants->WHEREWARE_LOCATION_COMPONENT->value        = WHEREWARE_LOCATION_COMPONENT;
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT->value         = WHEREWARE_LOCATION_GOODSOUT;
-        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition    = 'Assembly location code for automatic composite creation';
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->definition = 'Automatic fulfilment from assembly to goods out (pick list straight to goods out)';
-        $out->constants->WHEREWARE_LOCATION_COMPONENT->definition   = 'Warehouse code for finding/selecting component bins';
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT->definition    = 'Warehouse code for finding/selecting goods-out bins';
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY                    = new \stdClass ();
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL                 = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_COMPONENT                   = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS               = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT                    = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->value          = WHEREWARE_ASSEMBLY_AUTO_FULFIL ? 'Yes' : 'No';
+        $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
+        $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->value        = WHEREWARE_LOCATIONS_DESTINATIONS;
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT->value             = WHEREWARE_LOCATION_GOODSOUT;
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for automatic composite creation';
+        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->definition     = 'Automatic fulfilment from assembly to goods out (pick list straight to goods out)';
+        $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
+        $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->definition   = 'Code prefix for identifying destination locations';
+        $out->constants->WHEREWARE_LOCATION_GOODSOUT->definition        = 'Warehouse code for finding/selecting goods-out bins';
         return $out;
     }
 
@@ -149,7 +152,7 @@ class Whereware {
         {
             composite_quantity: 1,
             composite_sku: COMPOSITE-1,
-            customer_location: C-A,
+            destination_location: C-A,
             order_ref: MARK-1234,
             picks: [
                 {
@@ -165,9 +168,9 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_QTY_INVALID);
             return false;
         }
-        $obj->customer_location = trim ($obj->customer_location);
-        if (!strlen($obj->customer_location)) {
-            throw new \Exception (WHEREWARE_STR_QTY_INVALID);
+        $obj->destination_location = trim ($obj->destination_location);
+        if (!strlen($obj->destination_location)) {
+            throw new \Exception (WHEREWARE_STR_DESTINATION_NOT_FOUND);
             return false;
         }
         $sku = $this->sku ($obj->composite_sku);
@@ -206,7 +209,7 @@ class Whereware {
             'to_location' => WHEREWARE_LOCATION_GOODSOUT,
             'to_bin' => $sku->bin
         ];
-        // Goods-out qty x composite to customer location
+        // Goods-out qty x composite to destination location
         $moves[] = [
             'order_ref' => $obj->order_ref,
             'status' => 'R',
@@ -214,7 +217,7 @@ class Whereware {
             'sku' => $obj->composite_sku,
             'from_location' => WHEREWARE_LOCATION_GOODSOUT,
             'from_bin' => $sku->bin,
-            'to_location' => $obj->customer_location,
+            'to_location' => $obj->destination_location,
             'to_bin' => ''
         ];
         try {
@@ -261,18 +264,18 @@ class Whereware {
     }
 
     public function orders ($order_ref) {
-        $customer_locations_start_with = WHEREWARE_LOCATIONS_CUSTOMERS;
+        $destination_locations_start_with = WHEREWARE_LOCATIONS_DESTINATIONS;
         $limit = WHEREWARE_RESULTS_LIMIT;
         $rtn = new \stdClass ();
         $rtn->sql = "CALL `wwOrders`('','','','')";
         $rtn->orders = [];
         try {
-            $rtn->sql = "CALL `wwOrders`('$order_ref','$customer_locations_start_with',$limit);";
+            $rtn->sql = "CALL `wwOrders`('$order_ref','$destination_locations_start_with',$limit);";
             $limit++;
             $result = $this->hpapi->dbCall (
                 'wwOrders',
                 $order_ref,
-                $customer_locations_start_with,
+                $destination_locations_start_with,
                 $limit
             );
         }

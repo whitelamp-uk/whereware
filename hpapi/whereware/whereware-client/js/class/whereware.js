@@ -202,13 +202,13 @@ export class Whereware extends Generic {
         }
         form.location.value.trim ();
         if (form.location.value=='') {
-            this.statusShow ('Customer location must be selected');
+            this.statusShow ('Destination location must be selected');
             return;
         }
         move = {
             composite_quantity: form.quantity.value,
             composite_sku: this.parameters.wherewareSku,
-            customer_location: form.location.value,
+            destination_location: form.location.value,
             order_ref: this.parameters.wherewareOrder,
             picks: []
         };
@@ -294,8 +294,8 @@ export class Whereware extends Generic {
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
-            k.classList.add ('to_locations_customer');
-            k.textContent = rows[i].to_locations_customer;
+            k.classList.add ('to_locations_destination');
+            k.textContent = rows[i].to_locations_destination;
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
