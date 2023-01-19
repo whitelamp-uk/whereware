@@ -29,10 +29,14 @@ class Whereware {
             'wwUsers',
             $this->hpapi->email
         );
-        $user = $this->hpapi->parse2D ($result) [0];
-        $user->templates = $this->templates ();
-        $user->adminerUrl = WHEREWARE_ADMINER_URL;
-        return $user;
+        if ($result) {
+            $user = $this->hpapi->parse2D ($result) [0];
+            $user->templates = $this->templates ();
+            $user->adminerUrl = WHEREWARE_ADMINER_URL;
+            return $user;
+        }
+        throw new \Exception ('Authentication failure');
+        return false;
     }
 
     public function book ($order_ref,$composite,$picks) {
