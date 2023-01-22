@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS `ww_move` (
   `booking_id` int(11) unsigned DEFAULT NULL,
   `consignment_id` int(11) unsigned DEFAULT NULL,
   `status` char(1) CHARACTER SET ascii NOT NULL DEFAULT 'R',
-  `quantity` int(11) unsigned NOT NULL,
+  `quantity` int(11) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
   `from_location` char(64) CHARACTER SET ascii NOT NULL,
   `from_bin` char(64) CHARACTER SET ascii NOT NULL,
