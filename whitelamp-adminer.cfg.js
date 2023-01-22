@@ -27,7 +27,7 @@ var whitelampAdminer = {
             ['whereware','ww_movelog','from_bin'],
             ['whereware','ww_movelog','to_location'],
             ['whereware','ww_movelog','to_bin'],
-            ['whereware','ww_project','id'],
+            ['whereware','ww_project','project'],
             ['whereware','ww_recent_inventory','sku'],
             ['whereware','ww_recent_inventory','sku_additional_ref'],
             ['whereware','ww_recent_inventory','location'],
@@ -37,6 +37,22 @@ var whitelampAdminer = {
             ['whereware','ww_team','id'],
             ['whereware','ww_variant','generic'],
             ['whereware','ww_variant','sku'],
+        ]
+    },
+    columnFade : {
+        columns : [
+            ['whereware','ww_bin','id'],
+            ['whereware','ww_composite','id'],
+            ['whereware','ww_generic','id'],
+            ['whereware','ww_location','id'],
+            ['whereware','ww_move','id'],
+            ['whereware','ww_movelog','id'],
+            ['whereware','ww_project','id'],
+            ['whereware','ww_sku','id'],
+            ['whereware','ww_status','id'],
+            ['whereware','ww_user','id'],
+            ['whereware','ww_variant','id'],
+            ['whereware','ww_web','id'],
         ]
     },
     inputConstraint : {
