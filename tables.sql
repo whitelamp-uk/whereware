@@ -164,6 +164,20 @@ CREATE TABLE IF NOT EXISTS `ww_project` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
+CREATE TABLE IF NOT EXISTS `ww_project_location` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `project` char(64) CHARACTER SET ascii NOT NULL,
+  `location` char(64) CHARACTER SET ascii NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `project` (`project`),
+  KEY `location` (`location`),
+  CONSTRAINT `ww_project_location_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_project_location_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS `ww_recent_inventory` (
   `refreshed` datetime DEFAULT NULL COMMENT 'Last time this row was calculated',
   `sku` char(64) CHARACTER SET ascii NOT NULL,
