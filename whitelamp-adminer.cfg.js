@@ -34,7 +34,7 @@ var whitelampAdminer = {
             ['whereware','ww_recent_inventory','bin'],
             ['whereware','ww_sku','sku'],
             ['whereware','ww_sku','additional_ref'],
-            ['whereware','ww_team','id'],
+            ['whereware','ww_team','team'],
             ['whereware','ww_variant','generic'],
             ['whereware','ww_variant','sku'],
         ]
@@ -50,6 +50,7 @@ var whitelampAdminer = {
             ['whereware','ww_project','id'],
             ['whereware','ww_sku','id'],
             ['whereware','ww_status','id'],
+            ['whereware','ww_team','id'],
             ['whereware','ww_user','id'],
             ['whereware','ww_variant','id'],
             ['whereware','ww_web','id'],
