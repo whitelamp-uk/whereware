@@ -138,7 +138,7 @@ export class Whereware extends Generic {
     constructor (config) {
         super (config);
         this.data.whereware = {};
-        window.addEventListener ('focus',this.refreshesFocus.bind(this));
+        window.addEventListener ('focus',this.tasksFocus.bind(this));
     }
 
     async componentsRequest (searchTerms) {
@@ -202,13 +202,13 @@ export class Whereware extends Generic {
         }
         form.location.value.trim ();
         if (form.location.value=='') {
-            this.statusShow ('Destination location must be selected');
+            this.statusShow ('Target location must be selected');
             return;
         }
         move = {
             composite_quantity: form.quantity.value,
             composite_sku: this.parameters.wherewareSku,
-            destination_location: form.location.value,
+            target_location: form.location.value,
             order_ref: this.parameters.wherewareOrder,
             picks: []
         };
@@ -294,8 +294,8 @@ export class Whereware extends Generic {
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
-            k.classList.add ('to_locations_destination');
-            k.textContent = rows[i].to_locations_destination;
+            k.classList.add ('to_locations_target');
+            k.textContent = rows[i].to_locations_target;
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
@@ -419,266 +419,7 @@ export class Whereware extends Generic {
         }
     }
 
-    async refreshesCalculate ( ) {
-        var b,buttons,g,p,q,qty,quantities;
-        if (!('picklists' in this.data.whereware.refreshes)) {
-            this.data.whereware.refreshes.picklists = [];
-        }
-        qty = 0;
-        quantities = this.qsa (this.restricted,'.spreadsheet-cell input.spreadsheet-cell-integer');
-        for (q of quantities) {
-            qty += 1 * q.value;
-            p = this.find (this.data.whereware.refreshes.picklists,'sku',q.dataset.sku);
-            if (!p) {
-                try {
-                    g = await this.picklistRequest (q.dataset.sku);
-                    p = {
-                        sku: q.dataset.sku,
-                        generics: g
-                    }
-                    this.data.whereware.refreshes.picklists.push (p);
-                }
-                catch (e) {
-                    this.statusShow ('Could not fetch picklist');
-                    return false;
-                }
-            }
-        }
-        // Toggle button for next stage
-        buttons = this.qsa (this.restricted,'.whereware-refreshes-book');
-        for (b of buttons) {
-            if (qty>0) {
-                b.disabled = false;
-            }
-            else {
-                b.disabled = true;
-            }
-        }
-    }
-
-    refreshesFocus (evt) {
-        if (evt.currentTarget==window) {
-            this.refreshesFocusInhibit = true;
-            setTimeout (this.refreshesFocusEnable.bind(this),100);
-            return;
-        }
-        if (!this.refreshesFocusInhibit) {
-            evt.currentTarget.select ();
-        }
-    }
-
-    refreshesFocusEnable (evt) {
-        this.refreshesFocusInhibit = false;
-    }
-
-    refreshesInputInteger (evt) {
-        evt.currentTarget.value = this.refreshesLimitInteger (evt.currentTarget.value);
-        this.refreshesCalculate ();
-    }
-
-
-    refreshesKeydown (evt) {
-        var i,input,inputs,move,p,q,r,row,rows,tbody;
-        // Use arrow keys for spreadsheet-like navigation
-        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(evt.key) && !evt.shiftKey && !evt.ctrlKey) {
-            evt.preventDefault ();
-            row = evt.currentTarget.closest ('tr');
-            inputs = this.qsa (row,'.spreadsheet-cell input, .spreadsheet-cell select');
-            i = 0;
-            for (input of inputs) {
-                if (input==evt.currentTarget) {
-                    p = i;
-                }
-                i++;
-            }
-            if (evt.key=='ArrowLeft') {
-                // Focus the previous input in the same row
-                p--;
-            }
-            if (evt.key=='ArrowRight') {
-                // Focus the next input in the same row
-                p++;
-            }
-            if (p<0) {
-                p = i - 1;
-            }
-            if (p>=i) {
-                p = 0;
-            }
-            tbody = row.closest ('tbody');
-            rows = this.qsa (tbody,'tr.result');
-            i = 0;
-            for (r of rows) {
-                if (r==row) {
-                    q = i;
-                }
-                i++;
-            }
-            if (evt.key=='ArrowUp') {
-                // Focus the same input in the previous row
-                q--;
-            }
-            if (evt.key=='ArrowDown') {
-                // Focus the same input in the next row
-                q++;
-            }
-            if (q<0) {
-                q = i - 1;
-            }
-            if (q>=i) {
-                q = 0;
-            }
-            row = rows.item (q);
-            inputs = this.qsa (row,'.spreadsheet-cell input, .spreadsheet-cell select');
-            inputs.item(p).select ();
-        }
-        // Interfere if necessary
-        return true;
-    }
-
-    refreshesKeydownInteger (evt) {
-        var val;
-        if (!(/[0-9]/.test(evt.key))) {
-            if (evt.ctrlKey || evt.key=='Backspace' || evt.key=='Delete') {
-                // Do not interfere
-            }
-            else {
-                // Suppress
-                evt.preventDefault ();
-                if (!(/[0-9]/.test(evt.key))) {
-                    // Hot key options: use +/- to change integer values
-                    if (evt.key=='+' || evt.key=='-') {
-                        val = this.refreshesLimitInteger (evt.currentTarget.value);
-                        if (evt.key=='+') {
-                            val++;
-                        }
-                        else {
-                            val--;
-                        }
-                        evt.currentTarget.value = this.refreshesLimitInteger (val);
-                        this.refreshesCalculate ();
-                    }
-                }
-           }
-        }
-    }
-
-    refreshesLimitInteger (i) {
-        var neg;
-        // Sometimes a string, sometimes not
-        i = '' + i;
-        neg = false;
-        if (i.indexOf('-')==0) {
-            neg = true;
-            i = i.substr (1);
-        }
-        i = i.replace (/\D/g,'');
-        if (i.length==0) {
-            i = 0;
-        }
-        i *= 1;
-        if (neg) {
-            i = 0 - i;
-        }
-        if (i>99) {
-            i = 99;
-        }
-        if (i<0) {
-            i = 0;
-        }
-        return i;
-    }
-
-    refreshesList (trColumns,tbodyRows) {
-        var count,dt,dtp,i,input,j,lk,k,mod,noresults,refreshes,sm,span,team,topleft;
-        for (i=0;this.data.whereware.refreshes.skus[i];i++) {
-            // Cell:
-            k = document.createElement ('th');
-            k.classList.add ('sku');
-            k.setAttribute ('title','Order '+this.data.whereware.refreshes.skus[i].refresh_order_ref);
-            span = document.createElement ('span');
-            span.setAttribute ('title','Order '+this.data.whereware.refreshes.skus[i].refresh_order_ref);
-            span.textContent = this.data.whereware.refreshes.skus[i].sku;
-            k.appendChild (span);
-            trColumns.appendChild (k);
-        }
-        noresults = this.qs (tbodyRows,'tr.no-results');
-        count = 0;
-        for (j=0;this.data.whereware.teams[j];j++) {
-            if (this.data.whereware.teams[j].hidden) {
-                continue;
-            }
-            count++;
-            team = document.createElement ('tr');
-            team.classList.add ('result');
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('adminer');
-            lk = document.createElement ('a');
-            lk.classList.add ('whereware-link');
-            lk.dataset.action = 'select';
-            lk.dataset.table = 'ww_team';
-            lk.dataset.column = 'team';
-            lk.dataset.operator = '=';
-            lk.dataset.value = this.data.whereware.teams[j].team;
-            lk.textContent = '↗';
-            lk.addEventListener ('click',this.adminerLink.bind(this));
-            k.appendChild (lk);
-            team.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('team');
-            k.textContent = this.data.whereware.teams[j].team;
-            team.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('name');
-            k.textContent = this.data.whereware.teams[j].name;
-            team.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('notes');
-            dt = document.createElement ('details');
-            sm = document.createElement ('summary');
-            sm.textContent = 'Notes';
-            dt.appendChild (sm);
-            dtp = document.createElement ('p');
-            dtp.textContent = this.data.whereware.teams[j].notes;
-            dtp.addEventListener ('click',function(evt){evt.currentTarget.parentElement.open=false});
-            dt.appendChild (dtp);
-            k.appendChild (dt);
-            team.appendChild (k);
-            for (i=0;this.data.whereware.refreshes.skus[i];i++) {
-                // Cell:
-                k = document.createElement ('td');
-                k.classList.add ('spreadsheet-cell');
-                input = document.createElement ('input');
-                input.classList.add ('spreadsheet-cell-integer');
-                input.dataset.team = this.data.whereware.teams[j].team;
-                input.dataset.sku = this.data.whereware.refreshes.skus[i].sku;
-                input.setAttribute ('value',0);
-                input.addEventListener ('focus',this.refreshesFocus.bind(this));
-                input.addEventListener ('keydown',this.refreshesKeydown.bind(this));
-                input.addEventListener ('keydown',this.refreshesKeydownInteger.bind(this));
-                input.addEventListener ('input',this.refreshesInputInteger.bind(this));
-                k.appendChild (input);
-                team.appendChild (k);
-                if (j==0 && i==0) {
-                    topleft = input;
-                }
-            }
-            // Append row
-            tbodyRows.appendChild (team);
-        }
-        this.navigatorsListen (tbodyRows);
-        if (count>0) {
-            noresults.classList.add ('hidden');
-        }
-        topleft.select ();
-        return count;
-    }
-
-    async refreshesRequest (btn) {
+    async projectsRequest (btn) {
         var request,response;
         request     = {
             "email" : this.access.email.value
@@ -686,18 +427,18 @@ export class Whereware extends Generic {
                 "vendor" : "whereware"
                ,"package" : "whereware-server"
                ,"class" : "\\Whereware\\Whereware"
-               ,"method" : "refreshes"
+               ,"method" : "projects"
                ,"arguments" : [
                ]
             }
         }
         try {
             response = await this.request (request);
-            this.data.whereware.refreshes = response.returnValue;
+            this.data.whereware.projects = response.returnValue;
             return response.returnValue;
         }
         catch (e) {
-            console.log ('refreshesRequest(): could not get refreshes SKU list: '+e.message);
+            console.log ('projectsRequest(): could not get projects list: '+e.message);
             return false;
         }
     }
@@ -786,6 +527,374 @@ export class Whereware extends Generic {
             noresults.classList.add ('hidden');
         }
         return count;
+    }
+
+    tasksFocus (evt) {
+        if (evt.currentTarget==window) {
+            this.tasksFocusInhibit = true;
+            setTimeout (this.tasksFocusEnable.bind(this),100);
+            return;
+        }
+        if (!this.tasksFocusInhibit) {
+            evt.currentTarget.select ();
+        }
+    }
+
+    tasksFocusEnable (evt) {
+        this.tasksFocusInhibit = false;
+    }
+
+    tasksInputInteger (evt) {
+        evt.currentTarget.value = this.tasksLimitInteger (evt.currentTarget.value);
+    }
+
+    tasksKeydown (evt) {
+        // Use arrow keys for spreadsheet-like navigation
+        if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(evt.key) && !evt.shiftKey && !evt.ctrlKey) {
+            var i,input,inputs,move,p,q,r,row,rows,tbody;
+            evt.preventDefault ();
+            row = evt.currentTarget.closest ('tr');
+            inputs = this.qsa (row,'.spreadsheet-cell a, .spreadsheet-cell button, .spreadsheet-cell input, .spreadsheet-cell select');
+            i = 0;
+            for (input of inputs) {
+                if (input==evt.currentTarget) {
+                    p = i;
+                }
+                i++;
+            }
+            if (evt.key=='ArrowLeft') {
+                // Focus the previous input in the same row
+                p--;
+            }
+            if (evt.key=='ArrowRight') {
+                // Focus the next input in the same row
+                p++;
+            }
+            if (p<0) {
+                p = i - 1;
+            }
+            if (p>=i) {
+                p = 0;
+            }
+            tbody = row.closest ('tbody');
+            rows = this.qsa (tbody,'tr.result');
+            i = 0;
+            for (r of rows) {
+                if (r==row) {
+                    q = i;
+                }
+                i++;
+            }
+            if (evt.key=='ArrowUp') {
+                // Focus the same input in the previous row
+                q--;
+            }
+            if (evt.key=='ArrowDown') {
+                // Focus the same input in the next row
+                q++;
+            }
+            if (q<0) {
+                q = i - 1;
+            }
+            if (q>=i) {
+                q = 0;
+            }
+            row = rows.item (q);
+            inputs = this.qsa (row,'.spreadsheet-cell a, .spreadsheet-cell button, .spreadsheet-cell input, .spreadsheet-cell select');
+            input = inputs.item(p);
+            input.focus ();
+            if (input.classList.contains('spreadsheet-cell-integer')) {
+                input.select ();
+            }
+            return true;
+        }
+        if (['ArrowUp','ArrowDown'].includes(evt.key) && evt.shiftKey && evt.currentTarget.tagName.toLowerCase()=='select') {
+            // Roll through select options
+            var i;
+            i = evt.currentTarget.selectedIndex;
+            if (evt.key=='ArrowDown' && (evt.currentTarget.selectedIndex+1)<evt.currentTarget.options.length) {
+                i++;
+            }
+            else if (evt.key=='ArrowDown' && evt.currentTarget.selectedIndex>0) {
+                i--;
+            }
+            evt.currentTarget.selectedIndex = i;
+            return true;
+        }
+        return true;
+    }
+
+    tasksKeydownInteger (evt) {
+        var val;
+        if (!(/[0-9]/.test(evt.key))) {
+            if (evt.ctrlKey || evt.key=='Backspace' || evt.key=='Delete') {
+                // Do not interfere
+            }
+            else {
+                // Suppress
+                evt.preventDefault ();
+                if (!(/[0-9]/.test(evt.key))) {
+                    // Hot key options: use +/- to change integer values
+                    if (evt.key=='+' || evt.key=='-') {
+                        val = this.tasksLimitInteger (evt.currentTarget.value);
+                        if (evt.key=='+') {
+                            val++;
+                        }
+                        else {
+                            val--;
+                        }
+                        evt.currentTarget.value = this.tasksLimitInteger (val);
+                    }
+                }
+           }
+        }
+    }
+
+    tasksLimitInteger (i) {
+        var neg;
+        // Sometimes a string, sometimes not
+        i = '' + i;
+        neg = false;
+        if (i.indexOf('-')==0) {
+            neg = true;
+            i = i.substr (1);
+        }
+        i = i.replace (/\D/g,'');
+        if (i.length==0) {
+            i = 0;
+        }
+        i *= 1;
+        if (neg) {
+            i = 0 - i;
+        }
+        if (i>99) {
+            i = 99;
+        }
+        if (i<0) {
+            i = 0;
+        }
+        return i;
+    }
+
+    async tasksMatrix ( ) {
+        var btn,count,dt,dtp,i,input,j,lk,k,task,tasks,mod,noresults,n,o,p,projects,s,si,sku,skus,sm,span,t,topleft;
+        // Clear the old results
+        tasks = this.qsa (this.parameters.wherewareRowsElmt,'tr.result');
+        for (task of tasks) {
+            task.remove ();
+        }
+        skus = this.qsa (this.parameters.wherewareHeadingsElmt,'th.sku');
+        for (sku of skus) {
+            sku.remove ();
+        }
+        // Find the SKUs for the project
+        skus = [];
+        if (this.parameters.wherewareProjectSelect.value) {
+            skus = this.find(this.data.whereware.projects,'project',this.parameters.wherewareProjectSelect.value,false).skus;
+        }
+        noresults = this.qs (this.parameters.wherewareRowsElmt,'tr.no-results');
+        count = 0;
+        if (this.parameters.wherewareProjectSelect.value!='') {
+            await this.tasksRequest ();
+            for (j=0;this.data.whereware.tasks[j];j++) {
+                if (this.data.whereware.tasks[j].hidden) {
+                    continue;
+                }
+                count++;
+                task = document.createElement ('tr');
+                task.classList.add ('result');
+                // Adminer link
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                k.classList.add ('adminer');
+                lk = document.createElement ('button');
+                lk.classList.add ('whereware-link');
+                lk.dataset.action = 'select';
+                lk.dataset.table = 'ww_task';
+                lk.dataset.column = 'location';
+                lk.dataset.operator = '=';
+                lk.dataset.value = this.data.whereware.tasks[j].location;
+                lk.setAttribute ('title','View in Adminer');
+                lk.textContent = '↗';
+                lk.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                lk.addEventListener ('click',this.adminerLink.bind(this));
+                k.appendChild (lk);
+                task.appendChild (k);
+                // Raise button
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                k.classList.add ('raise');
+                btn = document.createElement ('button');
+                btn.classList.add ('whereware-tasks-raise');
+                btn.innerText = "Raise";
+                btn.dataset.taskid = this.data.whereware.tasks[j].id;
+//                btn.disabled = true;
+                btn.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                k.appendChild (btn);
+                task.appendChild (k);
+                // Update button
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                k.classList.add ('update');
+                btn = document.createElement ('button');
+                btn.classList.add ('whereware-tasks-update');
+                btn.innerText = "Update";
+                btn.dataset.taskid = this.data.whereware.tasks[j].id;
+//                btn.disabled = true;
+                btn.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                k.appendChild (btn);
+                task.appendChild (k);
+                // Location
+                k = document.createElement ('td');
+                k.classList.add ('location');
+                k.textContent = this.data.whereware.tasks[j].location + ' ' + this.data.whereware.tasks[j].location_name;
+                task.appendChild (k);
+                // Scheduled date
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                k.classList.add ('scheduled_date');
+                input = document.createElement ('input');
+                input.type = 'date';
+                input.name = 'scheduled_date';
+                input.value = this.data.whereware.tasks[j].scheduled_date;
+                input.setAttribute ('placeholder','Scheduled date');
+                input.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                k.appendChild (input);
+                task.appendChild (k);
+                // Team select
+                k = document.createElement ('td');
+                k.classList.add ('spreadsheet-cell');
+                k.classList.add ('team');
+                s = document.createElement ('select');
+                s.name = 'team';
+                o = document.createElement ('option');
+                o.value = '';
+                o.innerText = 'Unassigned';
+                s.appendChild (o);
+                si = 0;
+                for (n=0;this.data.whereware.teams[n];n++) {
+                    o = document.createElement ('option');
+                    o.value = this.data.whereware.teams[n].team;
+                    o.innerText = this.data.whereware.teams[n].team + ' ' + this.data.whereware.teams[n].name;
+                    s.appendChild (o);
+                    if (this.data.whereware.teams[n].team==this.data.whereware.tasks[j].team) {
+                        si = n + 1;
+                    }
+                }
+                s.selectedIndex = si;
+                s.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                k.appendChild (s);
+                task.appendChild (k);
+                // Notes
+                k = document.createElement ('td');
+                k.classList.add ('notes');
+                if (this.data.whereware.tasks[j].notes) {
+                    dt = document.createElement ('details');
+                    sm = document.createElement ('summary');
+                    sm.textContent = 'Notes';
+                    dt.appendChild (sm);
+                    dtp = document.createElement ('p');
+                    dtp.textContent = this.data.whereware.tasks[j].notes;
+                    dtp.addEventListener ('click',function(evt){evt.currentTarget.parentElement.open=false});
+                    dt.appendChild (dtp);
+                    k.appendChild (dt);
+                }
+                else {
+                    k.innerHTML = '&nbsp;';
+                }
+                task.appendChild (k);
+                for (i=0;skus[i];i++) {
+                    if (skus[i].hidden) {
+                        continue;
+                    }
+                    // SKU quantity
+                    k = document.createElement ('td');
+                    k.classList.add ('spreadsheet-cell');
+                    input = document.createElement ('input');
+                    input.classList.add ('spreadsheet-cell-integer');
+                    input.dataset.location = this.data.whereware.tasks[j].location;
+                    input.dataset.sku = skus[i].sku;
+                    input.setAttribute ('value',0);
+                    input.addEventListener ('focus',this.tasksFocus.bind(this));
+                    input.addEventListener ('keydown',this.tasksKeydown.bind(this));
+                    input.addEventListener ('keydown',this.tasksKeydownInteger.bind(this));
+                    input.addEventListener ('input',this.tasksInputInteger.bind(this));
+                    k.appendChild (input);
+                    task.appendChild (k);
+                    if (j==0 && i==0) {
+                        topleft = input;
+                    }
+                }
+                if (!skus.length) {
+                    k = document.createElement ('td');
+                    k.classList.add ('spreadsheet-cell');
+                    k.innerText = 'No SKUs for project';
+                    task.appendChild (k);
+                }
+                // Append row
+                this.parameters.wherewareRowsElmt.appendChild (task);
+            }
+        }
+        this.navigatorsListen (this.parameters.wherewareRowsElmt);
+        if (count>0) {
+            noresults.classList.add ('hidden');
+        }
+        // SKU headings
+        for (i=0;skus[i];i++) {
+            if (skus[i].hidden) {
+                continue;
+            }
+            // Cell:
+            k = document.createElement ('th');
+            k.classList.add ('sku');
+            span = document.createElement ('span');
+            span.textContent = skus[i].sku;
+            k.appendChild (span);
+            this.parameters.wherewareHeadingsElmt.appendChild (k);
+        }
+        if (topleft) {
+            topleft.select ();
+        }
+        return count;
+    }
+
+    tasksOptions (projectSelect,headingsElmt,rowsElmt) {
+        var i,o;
+        for (i=0;this.data.whereware.projects[i];i++) {
+            o = document.createElement ('option');
+            o.value = this.data.whereware.projects[i].project;
+            o.innerText = this.data.whereware.projects[i].name;
+            projectSelect.appendChild (o);
+        }
+        projectSelect.addEventListener ('change',this.tasksMatrix.bind(this));
+        this.parameters.wherewareProjectSelect  = projectSelect;
+        this.parameters.wherewareHeadingsElmt   = headingsElmt;
+        this.parameters.wherewareRowsElmt       = rowsElmt;
+    }
+
+    async tasksRequest (project) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "tasks"
+               ,"arguments" : [
+                    project
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.tasks = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('tasksRequest(): could not get tasks for project '+project+': '+e.message);
+            return false;
+        }
     }
 
     async teamsRequest ( ) {

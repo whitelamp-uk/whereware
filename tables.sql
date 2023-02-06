@@ -95,8 +95,10 @@ CREATE TABLE IF NOT EXISTS `ww_move` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `updater` char(64) CHARACTER SET ascii NOT NULL,
   `project` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
   `order_ref` char(64) CHARACTER SET ascii NOT NULL,
   `booking_id` int(11) unsigned DEFAULT NULL,
+  `task_id` int(11) unsigned DEFAULT NULL,
   `consignment_id` int(11) unsigned DEFAULT NULL,
   `status` char(1) CHARACTER SET ascii NOT NULL DEFAULT 'R',
   `quantity` int(11) unsigned NOT NULL DEFAULT 0,
@@ -117,15 +119,17 @@ CREATE TABLE IF NOT EXISTS `ww_move` (
   KEY `from_bin` (`from_bin`),
   KEY `to_bin` (`to_bin`),
   KEY `project` (`project`),
+  CONSTRAINT `ww_move_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_move_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`),
+  CONSTRAINT `ww_move_booking` FOREIGN KEY (`booking_id`) REFERENCES `ww_booking` (`id`),
+  CONSTRAINT `ww_move_task` FOREIGN KEY (`task`) REFERENCES `ww_task` (`id`),
+  CONSTRAINT `ww_move_consignment` FOREIGN KEY (`consignment_id`) REFERENCES `ww_consignment` (`id`),
+  CONSTRAINT `ww_move_status` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`),
+  CONSTRAINT `ww_move_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
   CONSTRAINT `ww_move_from_location` FOREIGN KEY (`from_location`) REFERENCES `ww_location` (`location`),
   CONSTRAINT `ww_move_from_bin` FOREIGN KEY (`from_bin`) REFERENCES `ww_bin` (`bin`),
   CONSTRAINT `ww_move_to_location` FOREIGN KEY (`to_location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_move_to_bin` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`),
-  CONSTRAINT `ww_move_booking` FOREIGN KEY (`booking_id`) REFERENCES `ww_booking` (`id`),
-  CONSTRAINT `ww_move_consignment` FOREIGN KEY (`consignment_id`) REFERENCES `ww_consignment` (`id`),
-  CONSTRAINT `ww_move_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
-  CONSTRAINT `ww_move_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`),
-  CONSTRAINT `ww_move_status` FOREIGN KEY (`status`) REFERENCES `ww_status` (`status`)
+  CONSTRAINT `ww_move_to_bin` FOREIGN KEY (`to_bin`) REFERENCES `ww_bin` (`bin`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
@@ -136,8 +140,10 @@ CREATE TABLE IF NOT EXISTS `ww_movelog` (
   `cancelled` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `updater` char(64) CHARACTER SET ascii NOT NULL,
   `project` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
   `order_ref` char(64) CHARACTER SET ascii NOT NULL,
   `booking_id` int(11) unsigned DEFAULT NULL,
+  `task_id` int(11) unsigned DEFAULT NULL,
   `consignment_id` int(11) unsigned DEFAULT NULL,
   `status` char(64) CHARACTER SET ascii NOT NULL DEFAULT 'RAISED',
   `quantity` int(11) unsigned NOT NULL,
@@ -164,17 +170,18 @@ CREATE TABLE IF NOT EXISTS `ww_project` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
-CREATE TABLE IF NOT EXISTS `ww_project_location` (
+CREATE TABLE IF NOT EXISTS `ww_project_sku` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  `hidden` tinyint(3) unsigned NOT NULL DEFAULT 0,
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `project` char(64) CHARACTER SET ascii NOT NULL,
-  `location` char(64) CHARACTER SET ascii NOT NULL,
+  `sku` char(64) CHARACTER SET ascii NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
   PRIMARY KEY (`id`),
-  KEY `project` (`project`),
-  KEY `location` (`location`),
-  CONSTRAINT `ww_project_location_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
-  CONSTRAINT `ww_project_location_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`)
+  UNIQUE KEY `project_sku` (`project`,`sku`),
+  KEY `sku` (`sku`),
+  CONSTRAINT `ww_project_sku_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_project_sku_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
@@ -244,6 +251,25 @@ CREATE TABLE IF NOT EXISTS `ww_team` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `team` (`team`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+
+CREATE TABLE IF NOT EXISTS `ww_task` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `project` char(64) CHARACTER SET ascii NOT NULL,
+  `location` char(64) CHARACTER SET ascii NOT NULL,
+  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `scheduled_date` date DEFAULT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `team_location` (`team`,`location`),
+  KEY `team` (`team`),
+  KEY `location` (`location`),
+  CONSTRAINT `ww_task_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_task_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_task_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
 CREATE TABLE IF NOT EXISTS `ww_user` (

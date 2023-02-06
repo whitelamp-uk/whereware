@@ -12,6 +12,7 @@ INSERT IGNORE INTO `ww_location` (`updated`, `location`, `name`) VALUES
 (NOW(),	'W-0',	'Any warehouse location');
 
 INSERT IGNORE INTO `ww_status` (`updated`, `status`, `name`) VALUES
+(NOW(),	'P',	'Preparing order'),
 (NOW(),	'R',	'Raised (still in the location of origin)'),
 (NOW(),	'T',	'In transit (between locations)'),
 (NOW(),	'F',	'Fulfilled (in the target bin)');

@@ -87,11 +87,11 @@ class Whereware {
     }
 
     public function components ($search_terms) {
-        return $this->skus ($search_terms,1,0,0);
+        return $this->skus ($search_terms,1,0);
     }
 
     public function composites ($search_terms) {
-        return $this->skus ($search_terms,0,1,0);
+        return $this->skus ($search_terms,0,1);
     }
 
     public function config ( ) {
@@ -156,7 +156,7 @@ class Whereware {
         {
             composite_quantity: 1,
             composite_sku: COMPOSITE-1,
-            destination_location: C-A,
+            target_location: C-A,
             order_ref: MARK-1234,
             picks: [
                 {
@@ -172,9 +172,9 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_QTY_INVALID);
             return false;
         }
-        $obj->destination_location = trim ($obj->destination_location);
-        if (!strlen($obj->destination_location)) {
-            throw new \Exception (WHEREWARE_STR_DESTINATION_NOT_FOUND);
+        $obj->target_location = trim ($obj->target_location);
+        if (!strlen($obj->target_location)) {
+            throw new \Exception (WHEREWARE_STR_TARGET_NOT_FOUND);
             return false;
         }
         $sku = $this->sku ($obj->composite_sku);
@@ -213,7 +213,7 @@ class Whereware {
             'to_location' => WHEREWARE_LOCATION_GOODSOUT,
             'to_bin' => $sku->bin
         ];
-        // Goods-out qty x composite to destination location
+        // Goods-out qty x composite to target location
         $moves[] = [
             'order_ref' => $obj->order_ref,
             'status' => 'R',
@@ -221,7 +221,7 @@ class Whereware {
             'sku' => $obj->composite_sku,
             'from_location' => WHEREWARE_LOCATION_GOODSOUT,
             'from_bin' => $sku->bin,
-            'to_location' => $obj->destination_location,
+            'to_location' => $obj->target_location,
             'to_bin' => ''
         ];
         try {
@@ -425,8 +425,40 @@ class Whereware {
         return $picklist;
     }
 
-    public function refreshes ( ) {
-        return $this->skus ('',0,0,1);
+    public function projects ( ) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwProjects'
+            );
+            $ps = [];
+            foreach ($result as $row) {
+                if (!array_key_exists($row['project'],$ps)) {
+                    $p                          = new \stdClass ();
+                    $p->project                 = $row['project'];
+                    $p->name                    = $row['name'];
+                    $p->notes                   = $row['notes'];
+                    $p->skus                    = [];
+                    $ps[$row['project']]        = $p;
+                }
+                $sku                            = new \stdClass ();
+                $sku->sku                       = $row['sku'];
+                $sku->name                      = $row['sku_name'];
+                $sku->additional_ref            = $row['additional_ref'];
+                $sku->bin                       = $row['bin'];
+                $sku->notes                     = $row['sku_notes'];
+                $ps[$row['project']]->skus[]    = $sku;
+            }
+            $projects = [];
+            foreach ($ps as $p) {
+                $projects[] = $p;
+            }
+            return $projects;
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
     }
 
     public function report ($args) {
@@ -550,18 +582,14 @@ class Whereware {
         return false;
     }
 
-    public function skus ($search_terms,$show_components=1,$show_composites=1,$show_refreshes=1) {
+    public function skus ($search_terms,$show_components=1,$show_composites=1) {
         $limit = WHEREWARE_RESULTS_LIMIT;
         $rtn = new \stdClass ();
-        $rtn->sql = "CALL `wwSkus`('','','','','')";
+        $rtn->sql = "CALL `wwSkus`('$search_terms','$show_components','$show_composites','$limit')";
         $rtn->skus = [];
         $like = $this->searchLike ($search_terms);
-        if ($like===false && $show_components==0 && $show_composites==0) {
-            // Search terms not compulsory for refreshes which are a limited list anyway
-            $like = '';
-        }
-        if ($like!==false) {
-            $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$show_refreshes,$limit);";
+        if ($like) {
+            $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$limit);";
             $limit++;
             try {
                 $result = $this->hpapi->dbCall (
@@ -569,7 +597,6 @@ class Whereware {
                     $like,
                     $show_components,
                     $show_composites,
-                    $show_refreshes,
                     $limit
                 );
             }
@@ -624,12 +651,11 @@ class Whereware {
         }
     }
 
-    public function stock ($location='',$sku) {
+    public function tasks ($project) {
         try {
             $result = $this->hpapi->dbCall (
-                'wwStock',
-                $location,
-                $sku
+                'wwTasks',
+                $project
             );
         }
         catch (\Exception $e) {

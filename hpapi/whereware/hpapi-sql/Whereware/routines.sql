@@ -295,12 +295,38 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwProjects`$$
+CREATE PROCEDURE `wwProjects`(
+)
+BEGIN
+  SELECT
+    `p`.`project`
+   ,`p`.`hidden`
+   ,`p`.`name`
+   ,`p`.`notes`
+   ,`s`.`sku`
+   ,(`s`.`hidden` OR `ps`.`hidden`) AS `sku_hidden`
+   ,`s`.`additional_ref`
+   ,`s`.`bin`
+   ,`s`.`name` AS `sku_name`
+   ,`s`.`notes` AS `sku_notes`
+  FROM `ww_project` AS `p`
+  JOIN `ww_project_sku` AS `ps`
+    ON `ps`.`project`=`p`.`project`
+  JOIN `ww_sku` AS `s`
+    ON `s`.`sku`=`ps`.`sku`
+  GROUP BY `p`.`project`,`s`.`sku`
+  ORDER BY `p`.`project`,`s`.`sku`
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwSkus`$$
 CREATE PROCEDURE `wwSkus`(
   IN `likeString` varchar(64) CHARSET ascii
  ,IN `includeComponents` int(1) UNSIGNED
  ,IN `includeComposites` int(1) UNSIGNED
- ,IN `includeRefreshes` int(1) UNSIGNED
  ,IN `rowsLimit` int(11) UNSIGNED
 )
 BEGIN
@@ -309,8 +335,6 @@ BEGIN
    ,`s`.`hidden`
    ,`s`.`sku`
    ,`c`.`sku` IS NOT NULL AS `is_composite`
-   ,`r`.`sku` IS NOT NULL AS `is_refresh`
-   ,`r`.`order_ref` AS `refresh_order_ref`
    ,`s`.`bin`
    ,`s`.`additional_ref`
    ,`s`.`name`
@@ -325,8 +349,6 @@ BEGIN
   FROM `ww_sku` AS `s`
   LEFT JOIN `ww_composite` AS `c`
          ON `c`.`sku`=`s`.`sku`
-  LEFT JOIN `ww_refresh` AS `r`
-         ON `r`.`sku`=`c`.`sku`
   WHERE (
        likeString IS NULL
     OR likeString=''
@@ -341,13 +363,7 @@ BEGIN
     )
     AND (
          includeComposites>0
-      OR includeRefreshes>0
       OR `c`.`sku` IS NULL
-    )
-    AND (
-         includeComposites>0
-      OR includeRefreshes=0
-      OR `r`.`sku` IS NOT NULL
     )
     ORDER BY
       `by_updated`
@@ -375,6 +391,70 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwTasks`$$
+CREATE PROCEDURE `wwTasks`(
+  IN `project` varchar(64) CHARSET ascii
+)
+BEGIN
+  SELECT
+    `tk`.*
+   ,IF(
+      `mv`.`status` IS NOT NULL
+     ,IF (
+        `mv`.`status`=0
+       ,'P' -- preparing
+       ,IF (
+          `mv`.`status`=1
+         ,'R' -- raised
+         ,IF (
+            `mv`.`status`=2
+           ,'T' -- transit
+           ,'F' -- fulfilled
+          )
+        )
+      )
+     ,'N' -- new task
+    ) AS `status`
+   ,`lc`.`name` AS `location_name`
+   ,`lc`.`territory` AS `location_territory`
+   ,`lc`.`postcode` AS `location_postcode`
+   ,`lc`.`address_1` AS `location_address_1`
+   ,`lc`.`address_2` AS `location_address_2`
+   ,`lc`.`address_3` AS `location_address_3`
+   ,`lc`.`town` AS `location_town`
+   ,`lc`.`region` AS `location_region`
+   ,`lc`.`map_url` AS `location_map_url`
+   ,`lc`.`notes` AS `location_notes`
+  FROM `ww_task` as `tk`
+  JOIN `ww_location` AS `lc`
+    ON `lc`.`location`=`tk`.`location`
+  LEFT JOIN `ww_team` AS `tm`
+         ON `tm`.`team`=`tk`.`team`
+  LEFT JOIN (
+    SELECT
+      `task_id`
+     ,MIN(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status`
+    FROM `ww_move`
+    WHERE `cancelled`=0
+    GROUP BY `task_id`
+  ) AS `mv`
+         ON `mv`.`task_id`=`tk`.`id`
+  WHERE project IS NULL
+     OR project=''
+     OR `tk`.`project`=project
+  ORDER BY
+    `tm`.`team` IS NULL DESC -- no team assigned
+   ,`tk`.`scheduled_date` IS NULL DESC -- no date scheduled
+   ,`status`='N' DESC -- no moves yet
+   ,`status`='P' DESC -- moves still need to be raised
+   ,`tk`.`scheduled_date` DESC -- recent
+   ,`lc`.`location`
+  LIMIT 100
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwTeams`$$
 CREATE PROCEDURE `wwTeams`(
 )
@@ -383,7 +463,6 @@ BEGIN
     *
   FROM `ww_team`
   WHERE `team`!=''
-  ORDER BY `team`
   ;
 END$$
 
