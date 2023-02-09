@@ -525,7 +525,7 @@ class Whereware {
     }
 
     private function searchLike ($search_terms) {
-        $str = trim (preg_replace('<[^A-z0-9]+>',' ',$search_terms));
+        $str = trim ($search_terms);
         $str = explode (' ',$str);
         $terms = [];
         $longest = 0;
