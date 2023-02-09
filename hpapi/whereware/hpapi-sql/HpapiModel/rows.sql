@@ -121,7 +121,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwMoveInsert',	4,	'Quantity',	0,	'int-11-positive'),
 ('Whereware',	'wwMoveInsert',	5,	'SKU',	0,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	6,	'From location',	0,	'varchar-64'),
-('Whereware',	'wwMoveInsert',	7,	'From bin',	0,	'varchar-64'),
+('Whereware',	'wwMoveInsert',	7,	'From bin',	1,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	8,	'To location',	0,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	9,	'To bin',	1,	'varchar-64'), -- The anywhere bin is an empty string
 ('Whereware',	'wwOrders',	1,	'SKU',	0,	'varchar-64'),
