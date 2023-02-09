@@ -63,17 +63,32 @@ BEGIN
      ,`to_bin`
     FROM `ww_move`
     WHERE `cancelled`=0
-      AND (
-           `to_location`=Location
-        OR `from_location`=Location
-      )
+      AND `to_location`=Location
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
         OR Sku_starts_with_or_empty_for_all=''
         OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
       )
-    GROUP BY `sku`,`to_location`,`to_bin`
+    GROUP BY `sku`,`to_bin`
   ;
+  -- Outputs
+  INSERT IGNORE INTO `ww_recent_inventory`
+    (`sku`,`location`,`bin`)
+    SELECT
+      `sku`
+     ,`from_location`
+     ,`from_bin`
+    FROM `ww_move`
+    WHERE `cancelled`=0
+      AND `from_location`=Location
+      AND (
+           Sku_starts_with_or_empty_for_all IS NULL
+        OR Sku_starts_with_or_empty_for_all=''
+        OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
+      )
+    GROUP BY `sku`,`from_bin`
+  ;
+  -- Inputs
   DROP TABLE IF EXISTS `inv_in_tmp`
   ;
   CREATE TABLE `inv_in_tmp` AS
@@ -92,7 +107,7 @@ BEGIN
         OR Sku_starts_with_or_empty_for_all=''
         OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
       )
-    GROUP BY `sku`,`to_location`,`to_bin`
+    GROUP BY `sku`,`bin`
   ;
   UPDATE `inv_in_tmp` AS `t`
   JOIN `ww_recent_inventory` AS `i`
@@ -111,22 +126,6 @@ BEGIN
   DROP TABLE `inv_in_tmp`
   ;
   -- Outputs
-  INSERT IGNORE INTO `ww_recent_inventory`
-    (`sku`,`location`,`bin`)
-    SELECT
-      `sku`
-     ,`from_location`
-     ,`from_bin`
-    FROM `ww_move`
-    WHERE `cancelled`=0
-      AND `from_location`=Location
-      AND (
-           Sku_starts_with_or_empty_for_all IS NULL
-        OR Sku_starts_with_or_empty_for_all=''
-        OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
-      )
-    GROUP BY `sku`,`from_location`,`from_bin`
-  ;
   DROP TABLE IF EXISTS `inv_out_tmp`
   ;
   CREATE TABLE `inv_out_tmp` AS
