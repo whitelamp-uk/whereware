@@ -419,6 +419,253 @@ export class Whereware extends Generic {
         }
     }
 
+    async projectImport (data) {
+        var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,task,tasks,td,th,tr;
+        e = [];
+        obj = {};
+        data = Papa.parse (data,this.cfg.papaparse.import);
+        if (data.errors.length) {
+            e.push ('CSV parse error');
+        }
+        data = data.data;
+        if (data[1]) {
+            obj.locationPrefix = data[1][1];
+        }
+        if (!obj.locationPrefix) {
+            e.push ('No location code prefix was given in cell B2');
+        }
+        if (data[2]) {
+            obj.teamPrefix = data[2][1];
+        }
+        if (!obj.teamPrefix) {
+            e.push ('No team code prefix was given in cell B3');
+        }
+        obj.skus = [];
+        for (r=0;r in data;r++) {
+            for (c=0;c in data[r];c++) {
+                if (data[r][c]==null) {
+                    data[r][c] = '';
+                }
+                else if (data[r][c].trim) {
+                    data[r][c] = data[r][c].trim ();
+                }
+            }
+        }
+        if (data[3]) {
+            for (c=5;c in data[3];c++) {
+                sku = { sku : data[3][c].replace(' ',''), composite : false, name : data[0][c], bin : data[1][c], column: c };
+                if (data[2][c]!='' || data[2][c]!='0') {
+                    sku.composite = true;
+                }
+                f = this.find (obj.skus,'sku',sku.sku,false);
+                if (f) {
+                    e.push ('SKU '+sku.sku+' is not unique');
+                }
+                obj.skus.push (sku);
+            }
+        }
+        else {
+            e.push ('Bad format - missing row 4 (SKUs)');
+        }
+        obj.tasks = [];
+        for (r=4;r in data;r++) {
+            task = {
+                team : obj.teamPrefix+data[r][0],
+                location : obj.locationPrefix+data[r][1],
+                name : data[r][2],
+                postcode : data[r][3],
+                scheduled_date : null,
+                skus : [],
+            }
+            if (data[r][4]) {
+                if (data[r][4].match(/^[0-9]{4}[^0-9][0-9]{2}[^0-9][0-9]{2}/)) {
+                    task.scheduled_date = data[r][4].substr (0,4) + '-' + data[r][4].substr (5,2) + '-' + data[r][4].substr (8,2);
+                }
+                else if (data[r][4].match(/^[0-9]{2}[^0-9][0-9]{2}[^0-9][0-9]{4}/)) {
+                    task.scheduled_date = data[r][4].substr (6,4) + '-' + data[r][4].substr (3,2) + '-' + data[r][4].substr (0,2);
+                }
+                else {
+                    e.push ('Invalid date format in cell E'+(r+1));
+                }
+            }
+            for (c=5;c in data[r];c++) {
+                if (!data[r][c]) {
+                    data[r][c] = 0;
+                }
+                if (!(''+data[r][c]).match(/^[0-9]+$/)) {
+                    e.push ('Invalid quantity in cell '+String.fromCharCode(c+65)+(r+1));
+                }
+                else if (data[r][c]>0) {
+                    sku = this.find (obj.skus,'column',c,false);
+                    if (!sku || !sku.sku) {
+                        e.push ('Missing SKU in cell '+String.fromCharCode(c+65)+'4 for quantity in cell '+String.fromCharCode(c+65)+(r+1));
+                    }
+                    sku.quantity = data[r][c];
+                    task.skus.push (sku);
+                }
+            }
+            obj.tasks.push (task);
+        }
+        // Render for review
+        tasks = await this.tasksRequest (this.parameters.wherewareProjectSelect.value);
+        section = document.getElementById ('projects-import');
+        cols = document.getElementById ('projects-import-columns');
+        cols.innerHTML = '';
+        rows = document.getElementById ('projects-import-rows');
+        rows.innerHTML = '';
+        errors = this.qsa (this.restricted,'#projects-import div.error');
+        for (div of errors) {
+            div.remove ();
+        }
+        if (e.length) {
+            for (r=0;e[r];r++) {
+                div = document.createElement ('div');
+                div.innerText = e[r];
+                div.classList.add ('error');
+                section.appendChild (div);
+            }
+        }
+        else {
+            // Column headings
+            th = document.createElement ('th');
+            btn = document.createElement ('button');
+            btn.innerText = 'Book';
+            th.appendChild (btn);
+            cols.appendChild (th);
+            th = document.createElement ('th');
+            th.innerText = 'Team';
+            cols.appendChild (th);
+            th = document.createElement ('th');
+            th.innerText = 'Location';
+            cols.appendChild (th);
+            th = document.createElement ('th');
+            th.innerText = 'Location name';
+            cols.appendChild (th);
+            th = document.createElement ('th');
+            th.innerText = 'Postcode';
+            cols.appendChild (th);
+            th = document.createElement ('th');
+            th.innerText = 'Date';
+            cols.appendChild (th);
+            for (c=0;c in obj.skus;c++) {
+                html = obj.skus[c].sku;
+                if (obj.skus[c].composite) {
+                    html += ' <i>[composite]</i>';
+                }
+                html += '<br/>'+obj.skus[c].name;
+                th = document.createElement ('th');
+                th.innerHTML = html;
+                cols.appendChild (th);
+            }
+            // Rows
+            for (r=0;r in obj.tasks;r++) {
+                tr = document.createElement ('tr');
+                // Action
+                td = document.createElement ('td');
+                task = this.find2 (tasks,'location',obj.tasks[r].location,'scheduled_date',obj.tasks[r].scheduled_date,false);
+                if (task) {
+                    td.innerText = task.status;
+                }
+                else {
+                    i = document.createElement ('input');
+                    i.type = 'checkbox';
+                    i.checked = true;
+                    td.appendChild (i);
+                }
+                tr.appendChild (td);
+                // Team code
+                td = document.createElement ('td');
+                td.innerText = obj.tasks[r].team;
+                tr.appendChild (td);
+                // Location code
+                td = document.createElement ('td');
+                td.innerText = obj.tasks[r].location;
+                tr.appendChild (td);
+                // Location name
+                td = document.createElement ('td');
+                td.innerText = obj.tasks[r].name;
+                tr.appendChild (td);
+                // Location postcode
+                td = document.createElement ('td');
+                td.innerText = obj.tasks[r].postcode;
+                tr.appendChild (td);
+                // Task date
+                td = document.createElement ('td');
+                td.innerText = obj.tasks[r].scheduled_date;
+                tr.appendChild (td);
+                // Quantities
+                for (c=0;c in obj.skus;c++) {
+                    td = document.createElement ('td');
+                    if (task) {
+                        sku = this.find (task.skus,'sku',obj.skus[c].sku);
+                    }
+                    else {
+                        sku = this.find (obj.tasks[r].skus,'sku',obj.skus[c].sku);
+                    }
+                    if (sku) {
+                        td.innerText = sku.quantity;
+                    }
+                    else {
+                        td.innerText = ' ';
+                    }
+                    tr.appendChild (td);
+                }
+                rows.appendChild (tr);
+            }
+        }
+    }
+
+    projectUpload (evt) {
+        var fn,sp,target;
+        target          = evt.currentTarget;
+        fn              = this.projectImport.bind (this);
+        sp              = this.splash.bind (this);
+        this.fileRead (target.files[0],'text/csv')
+            .then (
+                (rtn) => {
+                    fn (rtn);
+                }
+            )
+            .catch (
+                (err) => {
+                    sp (2,err.message,'Error','OK');
+                }
+            )
+        ;
+    }
+
+    projectView (evt) {
+        var button,input,project;
+        if (evt.currentTarget.value) {
+            project = this.find (this.data.whereware.projects,'project',evt.currentTarget.value,false);
+        }
+        input = document.getElementById ('projects-tasks-import');
+        button = document.getElementById ('projects-tasks-import-button');
+        if (input && button) {
+            if (project) {
+                input.disabled = false;
+                button.disabled = false;
+            }
+            else {
+                input.disabled = true;
+                button.disabled = true;
+            }
+        }
+    }
+
+    projectsOptions (projectSelect,csvInput) {
+        var i,o;
+        for (i=0;this.data.whereware.projects[i];i++) {
+            o = document.createElement ('option');
+            o.value = this.data.whereware.projects[i].project;
+            o.innerText = this.data.whereware.projects[i].name;
+            projectSelect.appendChild (o);
+        }
+        projectSelect.addEventListener ('change',this.projectView.bind(this));
+        csvInput.addEventListener ('change',this.projectUpload.bind(this));
+        this.parameters.wherewareProjectSelect  = projectSelect;
+    }
+
     async projectsRequest (btn) {
         var request,response;
         request     = {
@@ -429,6 +676,7 @@ export class Whereware extends Generic {
                ,"class" : "\\Whereware\\Whereware"
                ,"method" : "projects"
                ,"arguments" : [
+                    null
                ]
             }
         }

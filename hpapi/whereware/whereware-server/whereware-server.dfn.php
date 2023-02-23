@@ -9,8 +9,9 @@ define ( 'WHEREWARE_STR_PASSWORD_TEST',         '603 500 Unable to test password
 define ( 'WHEREWARE_STR_ORDER_NOT_NEW',         '604 400 Order already exists'              );
 define ( 'WHEREWARE_STR_ORDER_NOT_FOUND',       '605 404 Order not found'                   );
 define ( 'WHEREWARE_STR_SKU_NOT_FOUND',         '606 404 SKU not found'                     );
-define ( 'WHEREWARE_STR_TARGET_NOT_FOUND',      '608 400 Target location not found'         );
+define ( 'WHEREWARE_STR_TARGET_NOT_FOUND',      '607 400 Target location not found'         );
 define ( 'WHEREWARE_STR_QTY_INVALID',           '608 400 Quantity is not valid'             );
+define ( 'WHEREWARE_STR_PROJECT',               '609 400 Failed to identify project'        );
 define ( 'WHEREWARE_STR_RESULTS_LIMIT',         'Warning - too many results to show all'    );
 define ( 'WHEREWARE_STR_PASSWORD_DICTIONARY',   'Contains common words, names or patterns'  );
 define ( 'WHEREWARE_STR_PASSWORD_CHARACTERS',   'Not enough different characters'           );

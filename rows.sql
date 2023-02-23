@@ -13,9 +13,9 @@ INSERT IGNORE INTO `ww_location` (`updated`, `location`, `name`) VALUES
 
 INSERT IGNORE INTO `ww_status` (`updated`, `status`, `name`) VALUES
 (NOW(),	'P',	'Preparing order'),
-(NOW(),	'R',	'Raised (still in the location of origin)'),
-(NOW(),	'T',	'In transit (between locations)'),
-(NOW(),	'F',	'Fulfilled (in the target bin)');
+(NOW(),	'R',	'Raised (still in the from location/bin)'),
+(NOW(),	'T',	'In transit (in between from/to locations/bins'),
+(NOW(),	'F',	'Fulfilled (moved into the to location/bin)');
 
 INSERT IGNORE INTO `ww_team` (`updated`, `team`, `name`) VALUES
 (NOW(),	'',	'Any team');

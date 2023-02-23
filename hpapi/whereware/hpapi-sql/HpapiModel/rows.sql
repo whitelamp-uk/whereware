@@ -16,6 +16,22 @@ INSERT IGNORE INTO `hpapi_usergroup` (`usergroup`, `level`, `name`, `password_se
 
 ('wwadmin',	10,	'Whereware admin',	1,	'Whereware administrator.');
 
+
+-- SYSTEM USERS
+
+INSERT IGNORE INTO `hpapi_user` (`active`,`verified`,`remote_addr_pattern`,`name`,`notes`,`email`) VALUES
+
+(1,1,'^127\..+$','System user','','system@whereware');
+
+IF(MYSQL_AFFECTED_ROWS()>0) THEN
+
+  INSERT IGNORE INTO `hpapi_membership` (`user_id`,`usergroup`) VALUES
+
+  (LAST_INSERT_ID(),'system');
+
+ENDIF;
+
+
 -- HPAPI PRIVILEGE TABLES (THINGS YOU CAN DO)
 
 --         Expose vendor-repository/package-directory to the API
@@ -34,9 +50,11 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components',	'Component SKUs',	'Component SKUs filtered by search terms'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites',	'Composite SKUs',	'Composite SKUs filtered by search terms'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config',	'Config data',	'Gets Swimlanes configuration data for client'),
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory',	'Recalculate inventory',	'Regenerate data in ww_recent_inventory for the given location'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move',	'Book moves',	'Insert moves to raise moves from components to composites'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders',	'Order list',	'Orders for a given SKU'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	'Picklist',	'Picks component options for a composite SKU'),
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	'Project update',	'Project SKU data and tasks'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	'Projects',	'Project list with SKU data'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus',	'SKUs',	'All SKUs filtered by search terms'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	'Tasks',	'Tasks assigned to teams (that implement project SKU moves)'),
@@ -50,9 +68,12 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components',	1,	'Search terms',	1,	'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites',	1,	'Search terms',	1,	'varchar-3-64'),
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory',	1,	'Location code',	0,	'varchar-3-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move',	1,	'Picklist object',	0,	'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders',	1,	'Order reference',	0,	'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	1,	'SKU',	0,	'varchar-64'),
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	1,	'Project object',	0,	'object'),
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	1,	'Optional project code',	1,	'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus',	1,	'Search terms',	1,	'varchar-3-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	1,	'Project code',	1,	'varchar-3-64');
 
@@ -69,10 +90,12 @@ INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `meth
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders'),
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
+('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate'),
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects'),
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus'),
 ('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams');
+('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams'),
+('system',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory');
 
 
 
@@ -113,7 +136,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwBins',	1,	'Bin code starts with',	0,	'varchar-64'),
 ('Whereware',	'wwBookingCancel',	1,	'Booking ID',	0,	'int-11-positive'),
 ('Whereware',	'wwInventory',	1,	'Location code',	0,	'varchar-64'),
-('Whereware',	'wwInventory',	2,	'SKU start with',	0,	'varchar-64'),
+('Whereware',	'wwInventory',	2,	'SKU starts with',	1,	'varchar-64'),
 ('Whereware',	'wwLocations',	1,	'Location code starts with',	0,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	1,	'Order reference',	0,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	2,	'Booking ID',	0,	'int-11-positive'),
@@ -128,6 +151,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwOrders',	2,	'Destination locations start with',	0,	'varchar-64'),
 ('Whereware',	'wwOrders',	3,	'Results limit',	0,	'int-11-positive'),
 ('Whereware',	'wwPick',	1,	'Composite SKU',	0,	'varchar-64'),
+('Whereware',	'wwProjects',	1,	'Project code (optional)',	1,	'varchar-64'),
 ('Whereware',	'wwSkus',	1,	'SKU like',	0,	'varchar-64'),
 ('Whereware',	'wwSkus',	2,	'Include components',	0,	'db-boolean'),
 ('Whereware',	'wwSkus',	3,	'Include composites',	0,	'db-boolean'),
@@ -144,6 +168,7 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware',	'wwBookingCancel',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
 ('Whereware',	'wwBookingInsert',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
 ('Whereware',	'wwBins',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
+('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
 ('Whereware',	'wwLocations',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
 ('Whereware',	'wwOrders',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders'),
@@ -153,8 +178,10 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
+('Whereware',	'wwProjects',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate'),
 ('Whereware',	'wwProjects',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus'),
+('Whereware',	'wwasks',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate'),
 ('Whereware',	'wwTasks',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks'),
 ('Whereware',	'wwTeams',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams'),
 ('Whereware',	'wwUsers',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate'),

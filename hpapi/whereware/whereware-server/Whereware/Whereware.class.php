@@ -150,6 +150,22 @@ class Whereware {
         return $out;
     }
 
+    public function inventory ($location) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwInventory',
+                $location,
+                null
+            );
+            return $this->hpapi->parse2D ($result);
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+    }
+
     public function move ($obj) {
         /*
         For example:
@@ -425,10 +441,49 @@ class Whereware {
         return $picklist;
     }
 
-    public function projects ( ) {
+    public function projectUpdate ($obj) {
+        $p = $this->projects ($obj->project);
+        if (!$p) {
+            throw new \Exception (WHEREWARE_STR_PROJECT);
+            return false;
+        }
+/*
+    {
+        project : 123456,
+        name : Some project,
+        notes : Some notes,
+        skus : [
+            {
+                sku : THINGY-1,
+                name : Thingy One,
+                additional_ref : SUPPLIER-THINGY,
+                bin : B007,
+                notes : Heavy thingy
+            },
+            ....
+        ]
+    }
+*/
+        $p->tasks = $this->tasks ($obj->project);
+/*
+        // Add missing SKUs to ww_sku (ignore existing)
+        // Add missing SKUs to ww_project_sku (ignore existing)
+        // Add missing locations to ww_location (ignore existing)
+        // For each existing task:
+            // If *all* moves are status P:
+                // Update move quantities
+        // Add missing tasks to ww_tasks (ignore existing)
+
+        // Add booking ID 
+*/
+        return $p;
+    }
+
+    public function projects ($project=null) {
         try {
             $result = $this->hpapi->dbCall (
-                'wwProjects'
+                'wwProjects',
+                $project
             );
             $ps = [];
             foreach ($result as $row) {
@@ -663,7 +718,22 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
-        return $this->hpapi->parse2D ($result);
+        $tasks = $this->hpapi->parse2D ($result);
+        foreach ($tasks as $i=>$task) {
+            $skus = $task->skus;
+            $tasks[$i]->skus = [];
+            if ($skus) {
+                $skus = explode (';;',$skus);
+                foreach ($skus as $s) {
+                    $s = explode ('::',$s);
+                    $sku = new \stdClass ();
+                    $sku->sku = $s[0];
+                    $sku->quantity = $s[1];
+                    $tasks[$i]->skus[] = $sku;
+                }
+            }
+        }
+        return $tasks;
     }
 
     public function teams ( ) {

@@ -296,6 +296,7 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwProjects`$$
 CREATE PROCEDURE `wwProjects`(
+  IN `project` varchar(64) CHARSET ascii
 )
 BEGIN
   SELECT
@@ -314,6 +315,7 @@ BEGIN
     ON `ps`.`project`=`p`.`project`
   JOIN `ww_sku` AS `s`
     ON `s`.`sku`=`ps`.`sku`
+  WHERE (project IS NULL OR `p`.`project`=project)
   GROUP BY `p`.`project`,`s`.`sku`
   ORDER BY `p`.`project`,`s`.`sku`
   ;
@@ -398,15 +400,15 @@ BEGIN
   SELECT
     `tk`.*
    ,IF(
-      `mv`.`status` IS NOT NULL
+      `mv`.`task_id` IS NOT NULL
      ,IF (
-        `mv`.`status`=0
+        `mv`.`status_max`=0
        ,'P' -- preparing
        ,IF (
-          `mv`.`status`=1
+          `mv`.`status_min`<2
          ,'R' -- raised
          ,IF (
-            `mv`.`status`=2
+            `mv`.`status_min`<3
            ,'T' -- transit
            ,'F' -- fulfilled
           )
@@ -414,6 +416,7 @@ BEGIN
       )
      ,'N' -- new task
     ) AS `status`
+   ,`mv`.`skus`
    ,`lc`.`name` AS `location_name`
    ,`lc`.`territory` AS `location_territory`
    ,`lc`.`postcode` AS `location_postcode`
@@ -432,7 +435,11 @@ BEGIN
   LEFT JOIN (
     SELECT
       `task_id`
-     ,MIN(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status`
+     ,MIN(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_min`
+     ,MAX(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_max`
+     ,GROUP_CONCAT(
+        CONCAT(`sku`,'::',`quantity`) SEPARATOR ';;'
+      ) AS `skus`
     FROM `ww_move`
     WHERE `cancelled`=0
     GROUP BY `task_id`
