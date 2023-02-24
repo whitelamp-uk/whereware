@@ -425,6 +425,7 @@ export class Whereware extends Generic {
 
     async projectImport (data) {
         var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,task,tasks,td,th,tr;
+        section = document.getElementById ('projects-import');
         e = [];
         obj = {};
         data = Papa.parse (data,this.cfg.papaparse.import);
@@ -432,6 +433,23 @@ export class Whereware extends Generic {
             e.push ('CSV parse error');
         }
         data = data.data;
+        if (data[0]) {
+            obj.project = data[0][3];
+        }
+        if (!obj.project) {
+            div = document.createElement ('div');
+            div.innerText = 'No project code was given in cell D1';
+            div.classList.add ('error');
+            section.appendChild (div);
+            return;
+        }
+        if (obj.project!=this.parameters.wherewareProjectSelect.value) {
+            div = document.createElement ('div');
+            div.innerText = 'Project code in cell D1 does not match selected project '+this.parameters.wherewareProjectSelect.value;
+            div.classList.add ('error');
+            section.appendChild (div);
+            return;
+        }
         if (data[1]) {
             obj.locationPrefix = data[1][1];
         }
@@ -512,7 +530,6 @@ export class Whereware extends Generic {
         }
         // Render for review
         tasks = await this.tasksRequest (this.parameters.wherewareProjectSelect.value);
-        section = document.getElementById ('projects-import');
         cols = document.getElementById ('projects-import-columns');
         cols.innerHTML = '';
         rows = document.getElementById ('projects-import-rows');

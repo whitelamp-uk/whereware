@@ -563,6 +563,7 @@ class Whereware {
                         $assigns[] = [
                             'wwMoveAssign',
                             $move_id,
+                            $obj->project,
                             $task->id,
                             $task->team
                         ];

@@ -225,13 +225,15 @@ DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwMoveAssign`$$
 CREATE PROCEDURE `wwMoveAssign`(
    IN `moveId` int(11) unsigned
+  ,IN `projectCode` char(64) CHARSET ascii
   ,IN `taskId` int(11) unsigned
   ,IN `teamCode` char(64) CHARSET ascii
 )
 BEGIN
   UPDATE `ww_move`
   SET
-    `task_id`=taskId
+    `project`=projectCode
+   ,`task_id`=taskId
    ,`team`=teamCode
   WHERE `id`=moveId
   LIMIT 1
