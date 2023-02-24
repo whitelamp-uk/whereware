@@ -702,6 +702,10 @@ export class Whereware extends Generic {
             table.classList.add ('active');
             for (i=0;moves[i];i++) {
                 tr = document.createElement ('tr');
+                // booking ID
+                td = document.createElement ('td');
+                td.innerText = '#' + moves[i].booking_id;
+                tr.appendChild (td);
                 // team
                 td = document.createElement ('td');
                 td.innerText = moves[i].team;
