@@ -18,6 +18,21 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwBooking`$$
+CREATE PROCEDURE `wwBooking`(
+  IN `bookingId` int(11) UNSIGNED
+)
+BEGIN
+  SELECT
+    *
+  FROM `ww_move`
+  WHERE `cancelled`=0
+    AND `booking_id`=bookingId
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwBookingCancel`$$
 CREATE PROCEDURE `wwBookingCancel`(
   IN `bookingId` int(11) UNSIGNED
@@ -53,6 +68,19 @@ CREATE PROCEDURE `wwInventory`(
 )
 BEGIN
   SET @stamp = NOW()
+  ;
+  -- Reset inventory to zero
+  UPDATE `ww_recent_inventory`
+  SET
+    `moved_on`=0
+   ,`fulfilled`=0
+   ,`in_transit`=0
+   ,`raised`=0
+   ,`in_bin`=0
+   ,`available`=0
+  WHERE Sku_starts_with_or_empty_for_all IS NULL
+     OR Sku_starts_with_or_empty_for_all=''
+     OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
   ;
   -- Inputs
   INSERT IGNORE INTO `ww_recent_inventory`
@@ -194,6 +222,24 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwMoveAssign`$$
+CREATE PROCEDURE `wwMoveAssign`(
+   IN `moveId` int(11) unsigned
+  ,IN `taskId` int(11) unsigned
+  ,IN `teamCode` char(64) CHARSET ascii
+)
+BEGIN
+  UPDATE `ww_move`
+  SET
+    `task_id`=taskId
+   ,`team`=teamCode
+  WHERE `id`=moveId
+  LIMIT 1
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwMoveInsert`$$
 CREATE PROCEDURE `wwMoveInsert`(
    IN `orderRef` varchar(64)
@@ -294,6 +340,55 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwProjectSkuInsert`$$
+CREATE PROCEDURE `wwProjectSkuInsert`(
+   IN `projectCode` char(64)
+  ,IN `skuCode` char(64)
+  ,IN `binCode` char(64)
+  ,IN `skuName` varchar(64)
+  ,IN `skuComposite` tinyint(1)
+)
+BEGIN
+  INSERT INTO `ww_bin`
+  SET
+    `updated`=NOW()
+   ,`bin`=binCode
+  ON DUPLICATE KEY UPDATE
+    `bin`=binCode
+  ;
+  INSERT INTO `ww_sku`
+  SET
+    `updated`=NOW()
+   ,`sku`=skuCode
+   ,`bin`=binCode
+   ,`name`=skuName
+  ON DUPLICATE KEY UPDATE
+    `sku`=skuCode
+  ;
+  IF ROW_COUNT()>0 AND skuComposite>0 THEN
+    INSERT INTO `ww_composite`
+    SET
+      `updated`=NOW()
+     ,`sku`=skuCode
+    ON DUPLICATE KEY UPDATE
+      `sku`=skuCode
+  ;
+  END IF
+  ;
+  INSERT INTO `ww_project_sku`
+  SET
+    `updated`=NOW()
+   ,`project`=projectCode
+   ,`sku`=skuCode
+  ON DUPLICATE KEY UPDATE
+    `sku`=skuCode
+  ;
+  SELECT LAST_INSERT_ID() AS `id`
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwProjects`$$
 CREATE PROCEDURE `wwProjects`(
   IN `project` varchar(64) CHARSET ascii
@@ -311,9 +406,9 @@ BEGIN
    ,`s`.`name` AS `sku_name`
    ,`s`.`notes` AS `sku_notes`
   FROM `ww_project` AS `p`
-  JOIN `ww_project_sku` AS `ps`
+  LEFT JOIN `ww_project_sku` AS `ps`
     ON `ps`.`project`=`p`.`project`
-  JOIN `ww_sku` AS `s`
+  LEFT JOIN `ww_sku` AS `s`
     ON `s`.`sku`=`ps`.`sku`
   WHERE (project IS NULL OR `p`.`project`=project)
   GROUP BY `p`.`project`,`s`.`sku`
@@ -387,6 +482,41 @@ BEGIN
     *
   FROM `ww_status`
   ORDER BY `id`
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwTaskInsert`$$
+CREATE PROCEDURE `wwTaskInsert`(
+   IN `projectCode` char(64)  
+  ,IN `teamCode` char(64)
+  ,IN `locationCode` char(64)  
+  ,IN `scheduledDate` date
+  ,IN `locationName` varchar(64) 
+  ,IN `locationPostcode` char(64)  
+)
+BEGIN
+  INSERT INTO `ww_location`
+  SET
+    `updated`=NOW()
+   ,`location`=locationCode
+   ,`name`=locationName
+   ,`postcode`=locationPostcode
+  ON DUPLICATE KEY UPDATE
+    `location`=locationCode
+  ;
+  INSERT INTO `ww_task`
+  SET
+    `updated`=NOW()
+   ,`location`=locationCode
+   ,`scheduled_date`=scheduledDate
+   ,`project`=projectCode
+   ,`team`=teamCode
+  ON DUPLICATE KEY UPDATE
+    `location`=locationCode
+  ;
+  SELECT LAST_INSERT_ID() AS `id`
   ;
 END$$
 

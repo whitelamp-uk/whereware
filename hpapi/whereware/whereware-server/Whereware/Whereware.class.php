@@ -442,11 +442,6 @@ class Whereware {
     }
 
     public function projectUpdate ($obj) {
-        $p = $this->projects ($obj->project);
-        if (!$p) {
-            throw new \Exception (WHEREWARE_STR_PROJECT);
-            return false;
-        }
 /*
     {
         project : 123456,
@@ -461,22 +456,137 @@ class Whereware {
                 notes : Heavy thingy
             },
             ....
+        ],
+        tasks [
+            {
+                team : T-123,
+                location : NICE-1,
+                scheduled_date : 2021-02-23,
+                name : Somewhere nice,
+                postcode : CB25 0DU,
+                skus : [
+                    {
+                        sku : THINGY-1,
+                        quantity : 1
+                    },
+                    ...
+                ]
+            },
+            ....
         ]
     }
-*/
-        $p->tasks = $this->tasks ($obj->project);
-/*
-        // Add missing SKUs to ww_sku (ignore existing)
-        // Add missing SKUs to ww_project_sku (ignore existing)
-        // Add missing locations to ww_location (ignore existing)
-        // For each existing task:
-            // If *all* moves are status P:
-                // Update move quantities
-        // Add missing tasks to ww_tasks (ignore existing)
 
-        // Add booking ID 
+('Whereware', 'wwProjectSkuInsert',  1,  'Project code', 0,  'varchar-64'),
+('Whereware', 'wwProjectSkuInsert',  2,  'SKU', 0,  'varchar-64'),
+('Whereware', 'wwProjectSkuInsert',  3,  'Bin code', 1,  'varchar-64'),
+('Whereware', 'wwProjectSkuInsert',  4,  'SKU name', 1,  'varchar-64'),
+('Whereware', 'wwProjectSkuInsert',  5,  'Is composite', 0,  'db-boolean'),
+
 */
-        return $p;
+        $skus_assoc = [];
+        foreach ($obj->skus as $sku) {
+            $skus_assoc[$sku->sku] = $sku;
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwProjectSkuInsert',
+                    $obj->project,
+                    $sku->sku,
+                    $sku->bin,
+                    $sku->name,
+                    1*$sku->composite
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+        }
+        $tasks = $this->tasks ($obj->project);
+        foreach ($obj->tasks as $i=>$task) {
+            $obj->tasks[$i]->id = null;
+            $obj->tasks[$i]->status = null;
+            foreach ($tasks as $t) {
+                if ($t->location==$task->location && $t->scheduled_date==$task->scheduled_date) {
+                    $obj->tasks[$i]->id = $t->id;
+                    $obj->tasks[$i]->status = $t->status;
+                    break;
+                }
+            }
+            if (!$obj->tasks[$i]->id) {
+                try {
+                    $result = $this->hpapi->dbCall (
+                        'wwTaskInsert',
+                        $obj->project,
+                        $task->team,
+                        $task->location,
+                        $task->scheduled_date,
+                        $task->name,
+                        $task->postcode
+                    );
+                }
+                catch (\Exception $e) {
+                    $this->hpapi->diagnostic ($e->getMessage());
+                    throw new \Exception (WHEREWARE_STR_DB);
+                    return false;
+                }
+                $obj->tasks[$i]->id = $result[0]['id'];
+                $obj->tasks[$i]->status = 'N';
+            }
+            $booking_id = null;
+            try {
+                foreach ($task->skus as $sku) {
+                    if ($obj->tasks[$i]->status=='N') {
+                        // Add booking ID if any move is missing
+                        if (!$booking_id) {
+                            $result = $this->hpapi->dbCall (
+                                'wwBookingInsert'
+                            );
+                            $booking_id = $result[0]['id'];
+                        }
+                        // Insert move
+                        $result = $this->hpapi->dbCall (
+                            'wwMoveInsert',
+                            '',
+                            $booking_id,
+                            'P',
+                            $sku->quantity,
+                            $sku->sku,
+                            WHEREWARE_LOCATION_COMPONENT,
+                            $skus_assoc[$sku->sku]->bin,
+                            $task->location,
+                            ''
+                        );
+                        $move_id = $result[0]['id'];
+                        // Assign move
+sleep (1); // Quick hack to prevent ww_movelog duplicate primary key
+                        $result = $this->hpapi->dbCall (
+                            'wwMoveAssign',
+                            $move_id,
+                            $task->id,
+                            $task->team
+                        );
+                    }
+                }
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+        }
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwBooking',
+                $booking_id
+            );
+            return $this->hpapi->parse2D ($result);
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
     }
 
     public function projects ($project=null) {

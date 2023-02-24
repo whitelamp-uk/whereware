@@ -419,6 +419,10 @@ export class Whereware extends Generic {
         }
     }
 
+    async projectBookClose (evt) {
+        evt.currentTarget.parentElement.classList.remove ('active');
+    }
+
     async projectImport (data) {
         var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,task,tasks,td,th,tr;
         e = [];
@@ -530,6 +534,7 @@ export class Whereware extends Generic {
             th = document.createElement ('th');
             btn = document.createElement ('button');
             btn.innerText = 'Book';
+            btn.addEventListener ('click',this.projectUpdate.bind(this));
             th.appendChild (btn);
             cols.appendChild (th);
             th = document.createElement ('th');
@@ -554,14 +559,23 @@ export class Whereware extends Generic {
                 }
                 html += '<br/>'+obj.skus[c].name;
                 th = document.createElement ('th');
+                th.dataset.skus = '1';
+                th.dataset.sku = obj.skus[c].sku;
+                if (obj.skus[c].composite) {
+                    th.dataset.composite = '1';
+                }
+                th.dataset.bin = obj.skus[c].bin;
+                th.dataset.name = obj.skus[c].name;
                 th.innerHTML = html;
                 cols.appendChild (th);
             }
             // Rows
             for (r=0;r in obj.tasks;r++) {
                 tr = document.createElement ('tr');
+                tr.dataset.tasks = '1';
                 // Action
                 td = document.createElement ('td');
+                td.dataset.key = obj.tasks[r].location + '-' + obj.tasks[r].scheduled_date;
                 task = this.find2 (tasks,'location',obj.tasks[r].location,'scheduled_date',obj.tasks[r].scheduled_date,false);
                 if (task) {
                     td.innerText = task.status;
@@ -575,22 +589,27 @@ export class Whereware extends Generic {
                 tr.appendChild (td);
                 // Team code
                 td = document.createElement ('td');
+                td.dataset.team = '1';
                 td.innerText = obj.tasks[r].team;
                 tr.appendChild (td);
                 // Location code
                 td = document.createElement ('td');
+                td.dataset.location = '1';
                 td.innerText = obj.tasks[r].location;
                 tr.appendChild (td);
                 // Location name
                 td = document.createElement ('td');
+                td.dataset.name = '1';
                 td.innerText = obj.tasks[r].name;
                 tr.appendChild (td);
                 // Location postcode
                 td = document.createElement ('td');
+                td.dataset.postcode = '1';
                 td.innerText = obj.tasks[r].postcode;
                 tr.appendChild (td);
                 // Task date
                 td = document.createElement ('td');
+                td.dataset.date = '1';
                 td.innerText = obj.tasks[r].scheduled_date;
                 tr.appendChild (td);
                 // Quantities
@@ -603,6 +622,7 @@ export class Whereware extends Generic {
                         sku = this.find (obj.tasks[r].skus,'sku',obj.skus[c].sku);
                     }
                     if (sku) {
+                        td.dataset.sku = sku.sku;
                         td.innerText = sku.quantity;
                     }
                     else {
@@ -612,6 +632,139 @@ export class Whereware extends Generic {
                 }
                 rows.appendChild (tr);
             }
+        }
+    }
+
+    async projectUpdate (evt) {
+        var c,div,e,es,i,moves,obj,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
+        obj = { project : this.parameters.wherewareProjectSelect.value, skus : [], tasks : [] };
+        table = evt.currentTarget.closest ('table');
+        skus = this.qsa (table,'[data-skus]');
+        c = 0;
+        for (sku of skus) {
+            if (sku.dataset.composite) {
+                c = 1;
+            }
+            obj.skus.push (
+                {
+                    sku : sku.dataset.sku,
+                    composite : c,
+                    name : sku.dataset.name,
+                    bin : sku.dataset.bin
+                }
+            );
+        }
+        tasks = this.qsa (table,'[data-tasks]');
+        for (task of tasks) {
+            i = this.qs(task,'input');
+            if (i && i.checked) {
+                sqs = [];
+                skus = this.qsa (task,'[data-sku]');
+                for (sku of skus) {
+                    sqs.push (
+                        {
+                            sku : sku.dataset.sku,
+                            quantity : sku.innerText,
+                        }
+                    );
+                }
+                obj.tasks.push (
+                    {
+                        team : this.qs(task,'[data-team]').innerText,
+                        location : this.qs(task,'[data-location]').innerText,
+                        name : this.qs(task,'[data-name]').innerText,
+                        postcode : this.qs(task,'[data-postcode]').innerText,
+                        scheduled_date : this.qs(task,'[data-date]').innerText,
+                        skus : sqs
+                    }
+                );
+            }
+        }
+        moves = await this.projectUpdateRequest (obj);
+        if (moves) {
+            for (i=0;obj.tasks[i];i++) {
+                // Checkbox/status in first column
+                td = this.qs (table,'[data-key="'+obj.tasks[i].location+'-'+obj.tasks[i].scheduled_date+'"]');
+                td.innerHTML = '';
+                td.innerText = 'P'
+            }
+        }
+        // Report results
+        section = this.qs (this.restricted,'#projects-booked');
+        table = this.qs (section,'table.results');
+        tbody = this.qs (table,'tbody');
+        tbody.innerHTML = '';
+        es = this.qsa (section,'div.error');
+        for (e of es) {
+            e.remove ();
+        }
+        if (moves) {
+            table.classList.add ('active');
+            for (i=0;moves[i];i++) {
+                tr = document.createElement ('tr');
+                // team
+                td = document.createElement ('td');
+                td.innerText = moves[i].team;
+                tr.appendChild (td);
+                // task
+                td = document.createElement ('td');
+                td.innerText = '#' + moves[i].task_id;
+                tr.appendChild (td);
+                // status
+                td = document.createElement ('td');
+                td.innerText = moves[i].status;
+                tr.appendChild (td);
+                // quantity
+                td = document.createElement ('td');
+                td.innerText = moves[i].quantity;
+                tr.appendChild (td);
+                // sku
+                td = document.createElement ('td');
+                td.innerText = moves[i].sku;
+                tr.appendChild (td);
+                // from
+                td = document.createElement ('td');
+                td.innerText = moves[i].from_location + ' / ' + moves[i].from_bin;
+                tr.appendChild (td);
+                // to
+                td = document.createElement ('td');
+                td.innerText = moves[i].to_location + ' / ' + moves[i].to_bin;
+                tr.appendChild (td);
+                // append row
+                tbody.appendChild (tr);
+            }
+        }
+        else {
+            table.classList.remove ('active');
+            div = document.createElement ('div');
+            div.classList.add ('error');
+            div.innerText = 'Booking process failed to complete';
+            section.appendChild (div);
+        }
+        section.classList.add ('active');
+    }
+
+    async projectUpdateRequest (obj) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "projectUpdate"
+               ,"arguments" : [
+                    obj
+               ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('projectUpdateRequest(): '+e.message);
+            return false;
         }
     }
 
@@ -653,7 +806,7 @@ export class Whereware extends Generic {
         }
     }
 
-    projectsOptions (projectSelect,csvInput) {
+    projectsOptions (projectSelect,csvInput,closeButton) {
         var i,o;
         for (i=0;this.data.whereware.projects[i];i++) {
             o = document.createElement ('option');
@@ -663,6 +816,7 @@ export class Whereware extends Generic {
         }
         projectSelect.addEventListener ('change',this.projectView.bind(this));
         csvInput.addEventListener ('change',this.projectUpload.bind(this));
+        closeButton.addEventListener ('click',this.projectBookClose.bind(this));
         this.parameters.wherewareProjectSelect  = projectSelect;
     }
 

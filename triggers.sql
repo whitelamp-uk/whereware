@@ -173,6 +173,16 @@ CREATE TRIGGER `wwMoveOnBeforeUpdate`
 BEFORE UPDATE ON `ww_move` FOR EACH ROW
 BEGIN
   DECLARE usr varchar(255);
+  IF
+    (
+         ( NEW.`from_location` LIKE 'W-%' AND NEW.`from_location`!='W-0' AND NEW.`from_bin`='' )
+      OR ( NEW.`to_location` LIKE 'W-%' AND NEW.`to_location`!='W-0' AND NEW.`to_bin`='' )
+    )
+    AND NEW.`status`='F'
+  THEN
+      SET @msg = 'You cannot fulfil a move involving a warehouse location without specifying the bin';
+      SIGNAL SQLSTATE '45000' SET message_text = @msg;
+  END IF;
   IF NEW.`updater` IS NULL THEN
     SELECT USER() INTO usr
     ;

@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS `ww_bin` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `bin` char(64) CHARACTER SET ascii NOT NULL,
-  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `bin` (`bin`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS `ww_composite` (
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
   CONSTRAINT `ww_composite_sku` FOREIGN KEY (`sku`) REFERENCES `ww_sku` (`sku`)
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS `ww_project` (
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `project` char(64) CHARACTER SET ascii NOT NULL,
   `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`project`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
@@ -176,7 +176,7 @@ CREATE TABLE IF NOT EXISTS `ww_project_sku` (
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `project` char(64) CHARACTER SET ascii NOT NULL,
   `sku` char(64) CHARACTER SET ascii NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `project_sku` (`project`,`sku`),
   KEY `sku` (`sku`),
@@ -221,7 +221,7 @@ CREATE TABLE IF NOT EXISTS `ww_sku` (
   `bin` char(64) CHARACTER SET ascii NOT NULL COMMENT 'This field is the current bin but is not a constraint on move from/to bins',
   `additional_ref` char(64) CHARACTER SET ascii NOT NULL,
   `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
   KEY `bin` (`bin`),
@@ -241,6 +241,25 @@ CREATE TABLE IF NOT EXISTS `ww_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
+CREATE TABLE IF NOT EXISTS `ww_task` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
+  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `project` char(64) CHARACTER SET ascii NOT NULL,
+  `location` char(64) CHARACTER SET ascii NOT NULL,
+  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
+  `scheduled_date` date DEFAULT NULL,
+  `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `team_location` (`team`,`location`),
+  KEY `team` (`team`),
+  KEY `location` (`location`),
+  CONSTRAINT `ww_task_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
+  CONSTRAINT `ww_task_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`),
+  CONSTRAINT `ww_task_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+
 CREATE TABLE IF NOT EXISTS `ww_team` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
@@ -251,25 +270,6 @@ CREATE TABLE IF NOT EXISTS `ww_team` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `team` (`team`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
-
-CREATE TABLE IF NOT EXISTS `ww_task` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
-  `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `project` char(64) CHARACTER SET ascii NOT NULL,
-  `location` char(64) CHARACTER SET ascii NOT NULL,
-  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
-  `scheduled_date` date DEFAULT NULL,
-  `notes` text COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `team_location` (`team`,`location`),
-  KEY `team` (`team`),
-  KEY `location` (`location`),
-  CONSTRAINT `ww_task_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
-  CONSTRAINT `ww_task_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`),
-  CONSTRAINT `ww_task_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
 CREATE TABLE IF NOT EXISTS `ww_user` (
