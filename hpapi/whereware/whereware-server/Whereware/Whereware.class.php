@@ -534,6 +534,7 @@ class Whereware {
                 $obj->tasks[$i]->status = 'N';
             }
             $booking_id = null;
+            $assigns = [];
             try {
                 foreach ($task->skus as $sku) {
                     if ($obj->tasks[$i]->status=='N') {
@@ -559,13 +560,12 @@ class Whereware {
                         );
                         $move_id = $result[0]['id'];
                         // Assign move
-sleep (1); // Quick hack to prevent ww_movelog duplicate primary key
-                        $result = $this->hpapi->dbCall (
+                        $assigns[] = [
                             'wwMoveAssign',
                             $move_id,
                             $task->id,
                             $task->team
-                        );
+                        ];
                     }
                 }
             }
@@ -576,6 +576,12 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key
             }
         }
         try {
+sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
+            foreach ($assigns as $a) {
+                $result = $this->hpapi->dbCall (
+                    ...$a
+                );
+            }
             $result = $this->hpapi->dbCall (
                 'wwBooking',
                 $booking_id
