@@ -424,7 +424,7 @@ export class Whereware extends Generic {
     }
 
     async projectImport (data) {
-        var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,task,tasks,td,th,tr;
+        var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,skus,task,tasks,td,th,tr;
         section = document.getElementById ('projects-import');
         e = [];
         obj = {};
@@ -595,13 +595,26 @@ export class Whereware extends Generic {
                 td.dataset.key = obj.tasks[r].location + '-' + obj.tasks[r].scheduled_date;
                 task = this.find2 (tasks,'location',obj.tasks[r].location,'scheduled_date',obj.tasks[r].scheduled_date,false);
                 if (task) {
-                    td.innerText = task.status;
+                    skus = obj.tasks[r].skus;
+                    obj.tasks[r] = task;
+                    if (obj.tasks[r].status=='N') {
+                        obj.tasks[r].skus = skus;
+                    }
+                    obj.tasks[r].postcode = obj.tasks[r].location_postcode;
+                    td.innerText = '#' + task.id;
                 }
                 else {
+                    obj.tasks[r].status = 'N';
+                }
+                if (obj.tasks[r].status=='N') {
                     i = document.createElement ('input');
                     i.type = 'checkbox';
                     i.checked = true;
                     td.appendChild (i);
+                }
+                else {
+                    tr.classList.add ('imported');
+                    td.innerText += ' ' + obj.tasks[r].status;
                 }
                 tr.appendChild (td);
                 // Team code
@@ -653,7 +666,7 @@ export class Whereware extends Generic {
     }
 
     async projectUpdate (evt) {
-        var c,div,e,es,i,moves,obj,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
+        var c,div,e,es,i,moves,obj,rtn,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
         obj = { project : this.parameters.wherewareProjectSelect.value, skus : [], tasks : [] };
         table = evt.currentTarget.closest ('table');
         skus = this.qsa (table,'[data-skus]');
@@ -697,13 +710,15 @@ export class Whereware extends Generic {
                 );
             }
         }
-        moves = await this.projectUpdateRequest (obj);
-        if (moves) {
-            for (i=0;obj.tasks[i];i++) {
+        rtn = await this.projectUpdateRequest (obj);
+        if (rtn.moves) {
+            // Stuff happened so all tasks in the update can be changed in the view
+            for (i=0;rtn.tasks[i];i++) {
                 // Checkbox/status in first column
-                td = this.qs (table,'[data-key="'+obj.tasks[i].location+'-'+obj.tasks[i].scheduled_date+'"]');
+                td = this.qs (table,'[data-key="'+rtn.tasks[i].location+'-'+rtn.tasks[i].scheduled_date+'"]');
                 td.innerHTML = '';
-                td.innerText = 'P'
+                td.innerText = '#' + rtn.tasks[i].id + ' P';
+                td.closest('tr').classList.add ('imported');
             }
         }
         // Report results
@@ -715,41 +730,41 @@ export class Whereware extends Generic {
         for (e of es) {
             e.remove ();
         }
-        if (moves) {
+        if (rtn.moves) {
             table.classList.add ('active');
-            for (i=0;moves[i];i++) {
+            for (i=0;rtn.moves[i];i++) {
                 tr = document.createElement ('tr');
                 // booking ID
                 td = document.createElement ('td');
-                td.innerText = '#' + moves[i].booking_id;
+                td.innerText = '#' + rtn.moves[i].booking_id;
                 tr.appendChild (td);
                 // team
                 td = document.createElement ('td');
-                td.innerText = moves[i].team;
+                td.innerText = rtn.moves[i].team;
                 tr.appendChild (td);
                 // task
                 td = document.createElement ('td');
-                td.innerText = '#' + moves[i].task_id;
+                td.innerText = '#' + rtn.moves[i].task_id;
                 tr.appendChild (td);
                 // status
                 td = document.createElement ('td');
-                td.innerText = moves[i].status;
+                td.innerText = rtn.moves[i].status;
                 tr.appendChild (td);
                 // quantity
                 td = document.createElement ('td');
-                td.innerText = moves[i].quantity;
+                td.innerText = rtn.moves[i].quantity;
                 tr.appendChild (td);
                 // sku
                 td = document.createElement ('td');
-                td.innerText = moves[i].sku;
+                td.innerText = rtn.moves[i].sku;
                 tr.appendChild (td);
                 // from
                 td = document.createElement ('td');
-                td.innerText = moves[i].from_location + ' / ' + moves[i].from_bin;
+                td.innerText = rtn.moves[i].from_location + ' / ' + rtn.moves[i].from_bin;
                 tr.appendChild (td);
                 // to
                 td = document.createElement ('td');
-                td.innerText = moves[i].to_location + ' / ' + moves[i].to_bin;
+                td.innerText = rtn.moves[i].to_location + ' / ' + rtn.moves[i].to_bin;
                 tr.appendChild (td);
                 // append row
                 tbody.appendChild (tr);

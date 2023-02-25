@@ -483,6 +483,8 @@ class Whereware {
 ('Whereware', 'wwProjectSkuInsert',  5,  'Is composite', 0,  'db-boolean'),
 
 */
+        $booking_id = null;
+        $assigns = [];
         $skus_assoc = [];
         foreach ($obj->skus as $sku) {
             $skus_assoc[$sku->sku] = $sku;
@@ -533,8 +535,6 @@ class Whereware {
                 $obj->tasks[$i]->id = $result[0]['id'];
                 $obj->tasks[$i]->status = 'N';
             }
-            $booking_id = null;
-            $assigns = [];
             try {
                 foreach ($task->skus as $sku) {
                     if ($obj->tasks[$i]->status=='N') {
@@ -583,17 +583,24 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     ...$a
                 );
             }
-            $result = $this->hpapi->dbCall (
-                'wwBooking',
-                $booking_id
-            );
-            return $this->hpapi->parse2D ($result);
+            $moves = [];
+            if ($booking_id) {
+                $result = $this->hpapi->dbCall (
+                    'wwBooking',
+                    $booking_id
+                );
+                $moves = $this->hpapi->parse2D ($result);
+            }
         }
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
+        $rtn = new \stdClass ();
+        $rtn->tasks = $obj->tasks;
+        $rtn->moves = $result;
+        return $rtn;
     }
 
     public function projects ($project=null) {
