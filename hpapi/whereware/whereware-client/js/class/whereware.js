@@ -194,7 +194,7 @@ export class Whereware extends Generic {
     }
 
     async move ( ) {
-        var bid,form,generics,i,move,request,response;
+        var bid,err,form,generics,i,move,request,response;
         form = this.qs (this.restricted,'#picklist');
         if (form.quantity.value<1) {
             this.statusShow ('Quantity at least 1 must be entered');
@@ -244,13 +244,19 @@ export class Whereware extends Generic {
             response = await this.request (request);
             this.data.whereware.moves = response.returnValue.moves;
             this.parameters.wherewareBookingId = response.returnValue.bookingId;
+            await this.templateFetch ('booked');
+            this.insertRender ('booked',this.qs(this.restricted,'#orders'));
         }
         catch (e) {
             console.log ('move(): could not move stock: '+e.message);
-            return false;
+            err = e.message.split (' ');
+            if (err[1]=='403') {
+                this.splash (2,'Error','You do not have permission to execute this process','OK');
+            }
+            else {
+                this.splash (2,'Error','Moving process failed to complete','OK');
+            }
         }
-        await this.templateFetch ('booked');
-        this.insertRender ('booked',this.qs(this.restricted,'#orders'));
     }
 
     moveCalculate (evt) {
@@ -666,7 +672,7 @@ export class Whereware extends Generic {
     }
 
     async projectUpdate (evt) {
-        var c,div,e,es,i,moves,obj,rtn,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
+        var c,div,e,es,i,moves,msg,obj,rtn,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
         obj = { project : this.parameters.wherewareProjectSelect.value, skus : [], tasks : [] };
         table = evt.currentTarget.closest ('table');
         skus = this.qsa (table,'[data-skus]');
@@ -710,8 +716,13 @@ export class Whereware extends Generic {
                 );
             }
         }
-        rtn = await this.projectUpdateRequest (obj);
-        if (rtn.moves) {
+        try {
+            rtn = await this.projectUpdateRequest (obj);
+        }
+        catch (e) {
+            msg = e.message;
+        }
+        if (rtn && rtn.moves) {
             // Stuff happened so all tasks in the update can be changed in the view
             for (i=0;rtn.tasks[i];i++) {
                 // Checkbox/status in first column
@@ -730,58 +741,67 @@ export class Whereware extends Generic {
         for (e of es) {
             e.remove ();
         }
-        if (rtn.moves) {
-            table.classList.add ('active');
-            for (i=0;rtn.moves[i];i++) {
-                tr = document.createElement ('tr');
-                // booking ID
-                td = document.createElement ('td');
-                td.innerText = '#' + rtn.moves[i].booking_id;
-                tr.appendChild (td);
-                // team
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].team;
-                tr.appendChild (td);
-                // task
-                td = document.createElement ('td');
-                td.innerText = '#' + rtn.moves[i].task_id;
-                tr.appendChild (td);
-                // status
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].status;
-                tr.appendChild (td);
-                // quantity
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].quantity;
-                tr.appendChild (td);
-                // sku
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].sku;
-                tr.appendChild (td);
-                // from
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].from_location + ' / ' + rtn.moves[i].from_bin;
-                tr.appendChild (td);
-                // to
-                td = document.createElement ('td');
-                td.innerText = rtn.moves[i].to_location + ' / ' + rtn.moves[i].to_bin;
-                tr.appendChild (td);
-                // append row
-                tbody.appendChild (tr);
+        if (rtn && rtn.tasks.length>0) {
+            if (rtn.moves) {
+                table.classList.add ('active');
+                for (i=0;rtn.moves[i];i++) {
+                    tr = document.createElement ('tr');
+                    // booking ID
+                    td = document.createElement ('td');
+                    td.innerText = '#' + rtn.moves[i].booking_id;
+                    tr.appendChild (td);
+                    // team
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].team;
+                    tr.appendChild (td);
+                    // task
+                    td = document.createElement ('td');
+                    td.innerText = '#' + rtn.moves[i].task_id;
+                    tr.appendChild (td);
+                    // status
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].status;
+                    tr.appendChild (td);
+                    // quantity
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].quantity;
+                    tr.appendChild (td);
+                    // sku
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].sku;
+                    tr.appendChild (td);
+                    // from
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].from_location + ' / ' + rtn.moves[i].from_bin;
+                    tr.appendChild (td);
+                    // to
+                    td = document.createElement ('td');
+                    td.innerText = rtn.moves[i].to_location + ' / ' + rtn.moves[i].to_bin;
+                    tr.appendChild (td);
+                    // append row
+                    tbody.appendChild (tr);
+                }
+            }
+            else {
+                table.classList.remove ('active');
+                div = document.createElement ('div');
+                div.classList.add ('error');
+                div.innerText = msg;
+                section.appendChild (div);
             }
         }
         else {
             table.classList.remove ('active');
             div = document.createElement ('div');
             div.classList.add ('error');
-            div.innerText = 'Booking process failed to complete';
+            div.innerText = msg;
             section.appendChild (div);
         }
         section.classList.add ('active');
     }
 
     async projectUpdateRequest (obj) {
-        var request,response;
+        var err,request,response;
         request     = {
             "email" : this.access.email.value
            ,"method" : {
@@ -800,6 +820,14 @@ export class Whereware extends Generic {
         }
         catch (e) {
             console.log ('projectUpdateRequest(): '+e.message);
+            err = e.message.split (' ');
+            if (err[1]=='403') {
+                err = 'You do not have permission to execute this process';
+            }
+            else {
+                err = 'Booking process failed to complete';
+            }
+            throw new Error (err);
             return false;
         }
     }
