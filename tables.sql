@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS `ww_task` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `rebook` tinyint(1) unsigned NOT NULL DEFAULT 0,
   `project` char(64) CHARACTER SET ascii NOT NULL,
   `location` char(64) CHARACTER SET ascii NOT NULL,
   `team` char(64) CHARACTER SET ascii DEFAULT NULL,
