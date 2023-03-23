@@ -112,13 +112,15 @@ DROP TRIGGER IF EXISTS `wwMoveOnBeforeInsert`$$
 CREATE TRIGGER `wwMoveOnBeforeInsert`
 BEFORE INSERT ON `ww_move` FOR EACH ROW
 BEGIN
-  DECLARE usr varchar(255);
-  IF (NEW.`updater` IS NULL) THEN
-    SELECT USER() INTO usr
-    ;
+  DECLARE usr varchar(255)
+  ;
+  SELECT USER() INTO usr
+  ;
+  IF (usr!='whereware@localhost') THEN
     SET NEW.`updater` = usr
     ;
-  END IF;
+  END IF
+  ;
   SET NEW.`updated` = NOW()
   ;
   SET NEW.`project` = UPPER(NEW.`project`)
@@ -180,15 +182,19 @@ BEGIN
     )
     AND NEW.`status`='F'
   THEN
-      SET @msg = 'You cannot fulfil a move involving a warehouse location without specifying the bin';
-      SIGNAL SQLSTATE '45000' SET message_text = @msg;
-  END IF;
-  IF NEW.`updater` IS NULL THEN
-    SELECT USER() INTO usr
-    ;
+      SET @msg = 'You cannot fulfil a move involving a warehouse location without specifying the bin'
+      ;
+      SIGNAL SQLSTATE '45000' SET message_text = @msg
+      ;
+  END IF
+  ;
+  SELECT USER() INTO usr
+  ;
+  IF (usr!='whereware@localhost') THEN
     SET NEW.`updater` = usr
     ;
-  END IF;
+  END IF
+  ;
   SET NEW.`hidden` = IF(NEW.`cancelled`>0,1,NEW.`hidden`)
   ;
   SET NEW.`project` = UPPER(NEW.`project`)
