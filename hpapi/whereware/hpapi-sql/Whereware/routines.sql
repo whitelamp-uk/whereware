@@ -224,7 +224,8 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwMoveAssign`$$
 CREATE PROCEDURE `wwMoveAssign`(
-   IN `moveId` int(11) unsigned
+   IN `assigner` varchar(64)
+  ,IN `moveId` int(11) unsigned
   ,IN `projectCode` char(64) CHARSET ascii
   ,IN `taskId` int(11) unsigned
   ,IN `teamCode` char(64) CHARSET ascii
@@ -232,7 +233,8 @@ CREATE PROCEDURE `wwMoveAssign`(
 BEGIN
   UPDATE `ww_move`
   SET
-    `project`=projectCode
+    `updater`=assigner
+   ,`project`=projectCode
    ,`task_id`=taskId
    ,`team`=teamCode
   WHERE `id`=moveId
@@ -244,7 +246,8 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwMoveInsert`$$
 CREATE PROCEDURE `wwMoveInsert`(
-   IN `orderRef` varchar(64)
+   IN `inserter` varchar(64)
+  ,IN `orderRef` varchar(64)
   ,IN `bookingId` int(11) unsigned
   ,IN `sts` varchar(64)
   ,IN `qty` int(11) unsigned
@@ -257,7 +260,8 @@ CREATE PROCEDURE `wwMoveInsert`(
 BEGIN
   INSERT INTO `ww_move`
   SET
-    `order_ref`=orderRef
+    `updater`=inserter
+   ,`order_ref`=orderRef
    ,`booking_id`=bookingId
    ,`status`=sts
    ,`quantity`=qty
