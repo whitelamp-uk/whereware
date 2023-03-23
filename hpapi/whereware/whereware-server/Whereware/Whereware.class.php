@@ -248,6 +248,7 @@ class Whereware {
             foreach ($moves as $m) {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
+                    $this->hpapi->email,
                     $m['order_ref'],
                     $booking_id,
                     $m['status'],
@@ -500,7 +501,7 @@ class Whereware {
             }
             catch (\Exception $e) {
                 $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB);
+                throw new \Exception (WHEREWARE_STR_DB_INSERT);
                 return false;
             }
         }
@@ -529,7 +530,7 @@ class Whereware {
                 }
                 catch (\Exception $e) {
                     $this->hpapi->diagnostic ($e->getMessage());
-                    throw new \Exception (WHEREWARE_STR_DB);
+                    throw new \Exception (WHEREWARE_STR_DB_INSERT);
                     return false;
                 }
                 $obj->tasks[$i]->id = $result[0]['id'];
@@ -537,9 +538,11 @@ class Whereware {
             }
             try {
                 foreach ($task->skus as $sku) {
+                    $error = WHEREWARE_STR_DB;
                     if ($obj->tasks[$i]->status=='N') {
                         // Add booking ID if any move is missing
                         if (!$booking_id) {
+                            $error = WHEREWARE_STR_DB_INSERT;
                             $result = $this->hpapi->dbCall (
                                 'wwBookingInsert'
                             );
@@ -548,6 +551,7 @@ class Whereware {
                         // Insert move
                         $result = $this->hpapi->dbCall (
                             'wwMoveInsert',
+                            $this->hpapi->email,
                             '',
                             $booking_id,
                             'P',
@@ -558,10 +562,13 @@ class Whereware {
                             $task->location,
                             ''
                         );
+                        $error = WHEREWARE_STR_DB;
                         $move_id = $result[0]['id'];
                         // Assign move
+                        $error = WHEREWARE_STR_DB_INSERT;
                         $assigns[] = [
                             'wwMoveAssign',
+                            $this->hpapi->email,
                             $move_id,
                             $obj->project,
                             $task->id,
@@ -572,18 +579,22 @@ class Whereware {
             }
             catch (\Exception $e) {
                 $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB);
+                throw new \Exception ($error);
                 return false;
             }
         }
         try {
+// TODO
 sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
+$this->hpapi->diagnostic (print_r($assigns,true));
+            $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
                 $result = $this->hpapi->dbCall (
                     ...$a
                 );
             }
             $moves = [];
+            $error = WHEREWARE_STR_DB;
             if ($booking_id) {
                 $result = $this->hpapi->dbCall (
                     'wwBooking',
@@ -594,7 +605,7 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         }
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
-            throw new \Exception (WHEREWARE_STR_DB);
+            throw new \Exception ($error);
             return false;
         }
         $rtn = new \stdClass ();
