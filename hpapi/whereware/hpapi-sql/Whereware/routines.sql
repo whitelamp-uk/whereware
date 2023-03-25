@@ -495,17 +495,19 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwTaskInsert`$$
 CREATE PROCEDURE `wwTaskInsert`(
-   IN `projectCode` char(64)  
+   IN `projectCode` char(64)
   ,IN `teamCode` char(64)
-  ,IN `locationCode` char(64)  
+  ,IN `locationCode` char(64)
   ,IN `scheduledDate` date
-  ,IN `locationName` varchar(64) 
-  ,IN `locationPostcode` char(64)  
+  ,IN `locationName` varchar(64)
+  ,IN `locationPostcode` char(64)
+  ,IN `rebooksTaskId` int(11) unsigned null
 )
 BEGIN
   INSERT INTO `ww_location`
   SET
     `updated`=NOW()
+   ,`rebooks_task_id`=rebooksTaskId
    ,`location`=locationCode
    ,`name`=locationName
    ,`postcode`=locationPostcode
@@ -591,6 +593,74 @@ BEGIN
    ,`status`='P' DESC -- moves still need to be raised
    ,`tk`.`scheduled_date` DESC -- recent
    ,`lc`.`location`
+  LIMIT 100
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwTeam`$$
+CREATE PROCEDURE `wwTeam`(
+  IN `teamCode` varchar(64) CHARSET ascii
+)
+BEGIN
+  SELECT
+    `tm`.`hidden`
+   ,`tm`.`name`
+   ,`tk`.`id`
+   ,`tk`.`updated`
+   ,`tk`.`rebook`
+   ,`tk`.`location`
+   ,`tk`.`scheduled_date`
+   ,IF(
+      `mv`.`task_id` IS NOT NULL
+     ,IF (
+        `mv`.`status_max`=0
+       ,'P' -- preparing
+       ,IF (
+          `mv`.`status_min`<2
+         ,'R' -- raised
+         ,IF (
+            `mv`.`status_min`<3
+           ,'T' -- transit
+           ,'F' -- fulfilled
+          )
+        )
+      )
+     ,'N' -- new task
+    ) AS `status`
+   ,`mv`.`skus`
+   ,`lc`.`name` AS `location_name`
+   ,`lc`.`territory` AS `location_territory`
+   ,`lc`.`postcode` AS `location_postcode`
+   ,`lc`.`address_1` AS `location_address_1`
+   ,`lc`.`address_2` AS `location_address_2`
+   ,`lc`.`address_3` AS `location_address_3`
+   ,`lc`.`town` AS `location_town`
+   ,`lc`.`region` AS `location_region`
+   ,`lc`.`map_url` AS `location_map_url`
+   ,`lc`.`notes` AS `location_notes`
+  FROM `ww_team` AS `tm`
+  JOIN `ww_task` as `tk`
+    ON `tm`.`team`=`tk`.`team`
+  JOIN `ww_location` AS `lc`
+    ON `lc`.`location`=`tk`.`location`
+  LEFT JOIN (
+    SELECT
+      `task_id`
+     ,MIN(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_min`
+     ,MAX(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_max`
+     ,GROUP_CONCAT(
+        CONCAT(`sku`,'::',`quantity`) SEPARATOR ';;'
+      ) AS `skus`
+    FROM `ww_move`
+    WHERE `cancelled`=0
+    GROUP BY `task_id`
+  ) AS `mv`
+         ON `mv`.`task_id`=`tk`.`id`
+  WHERE `tm`.`team`=teamCode
+  ORDER BY
+    `tk`.`scheduled_date` DESC
   LIMIT 100
   ;
 END$$

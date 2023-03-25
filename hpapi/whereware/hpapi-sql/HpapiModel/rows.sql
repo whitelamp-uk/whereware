@@ -14,7 +14,8 @@ INSERT IGNORE INTO `hpapi_pattern` (`pattern`, `constraints`, `expression`, `inp
 
 INSERT IGNORE INTO `hpapi_usergroup` (`usergroup`, `level`, `name`, `password_self_manage`, `notes`) VALUES
 
-('wwadmin',	10,	'Whereware admin',	1,	'Whereware administrator.');
+('wwadmin',	10,	'Whereware admin',	1,	'Whereware administrator'),
+('wwstores', 10, 'Whereware admin',  1,  'Whereware stores personnel');
 
 
 -- SYSTEM USERS
@@ -56,9 +57,11 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	'Picklist',	'Picks component options for a composite SKU'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	'Project update',	'Project SKU data and tasks'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	'Projects',	'Project list with SKU data'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 'Returns', 'Move and fulfil returned stock to a holding location, raise move back again as new task'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus',	'SKUs',	'All SKUs filtered by search terms'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	'Tasks',	'Tasks assigned to teams (that implement project SKU moves)'),
-('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams',	'Teams',	'Team list with location data');
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'team',	'Team',	'Team and its tasks'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'teams',  'Teams',  'Team list with location data');
 
 
 
@@ -74,8 +77,10 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	1,	'SKU',	0,	'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	1,	'Project object',	0,	'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	1,	'Optional project code',	1,	'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 1,  'Returns object',  0,  'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus',	1,	'Search terms',	1,	'varchar-3-64'),
-('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	1,	'Project code',	1,	'varchar-3-64');
+('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	1,	'Project code',	1,	'varchar-3-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'team',  1,  'Team code', 0,  'varchar-3-64');
 
 
 
@@ -83,19 +88,25 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 
 INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `method`) VALUES
 
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks'),
-('staff',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams'),
-('system',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory');
+('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'move'),
+('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
+('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
+('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'authenticate'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'components'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'composites'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'config'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'orders'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'picklist'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projects'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skus'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'tasks'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'team'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'teams'),
+('system',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'inventory'),
+('wwstores', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns');
+
+
 
 
 
@@ -112,6 +123,7 @@ INSERT IGNORE INTO `hpapi_model` (`model`, `notes`) VALUES
 --         Expose DataModel.storedProcedureName to the API
 
 INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
+
 ('Whereware',	'wwBins',	'Bins'),
 ('Whereware', 'wwBooking',  'List a booked group of stock moves'),
 ('Whereware',	'wwBookingCancel',	'Cancel a booked group of stock moves'),
@@ -129,6 +141,7 @@ INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
 ('Whereware',	'wwStatuses',	'Allowed move statuses'),
 ('Whereware', 'wwTaskInsert',  'Insert task for a project, inserting the location where missing'),
 ('Whereware',	'wwTasks',	'List of tasks with location/team/status'),
+('Whereware', 'wwTeam',  'Team details and its tasks'),
 ('Whereware',	'wwTeams',	'List of teams/associated locations'),
 ('Whereware',	'wwUsers',	'Users by user group (optional email match)');
 
@@ -178,7 +191,9 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware', 'wwTaskInsert',  4,  'Scheduled date', 0,  'yyyy-mm-dd'),
 ('Whereware', 'wwTaskInsert',  5,  'Location name', 1,  'varchar-64'),
 ('Whereware', 'wwTaskInsert',  6,  'Location postcode', 1,  'varchar-64'),
+('Whereware', 'wwTaskInsert',  7,  'Location postcode', 1,  'int-11-positive'),
 ('Whereware',	'wwTasks',	1,	'Project code',	1,	'varchar-64'),
+('Whereware', 'wwTeam',  1,  'Team code', 0,  'varchar-64'),
 ('Whereware',	'wwUsers',	1,	'Email',	1,	'email');
 
 
@@ -210,6 +225,7 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware', 'wwTaskInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwTasks', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware',	'wwTasks',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks'),
+('Whereware', 'wwTeam',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'team'),
 ('Whereware',	'wwTeams',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'teams'),
 ('Whereware',	'wwUsers',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate'),
 ('Whereware',	'wwUsers',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config');

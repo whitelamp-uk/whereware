@@ -137,16 +137,22 @@ class Whereware {
         $out->constants->WHEREWARE_LOCATION_COMPONENT                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS               = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_GOODSOUT                    = new \stdClass ();
+        $out->constants->WHEREWARE_RETURNS_LOCATION                     = new \stdClass ();
+        $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
         $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->value          = WHEREWARE_ASSEMBLY_AUTO_FULFIL ? 'Yes' : 'No';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->value        = WHEREWARE_LOCATIONS_DESTINATIONS;
         $out->constants->WHEREWARE_LOCATION_GOODSOUT->value             = WHEREWARE_LOCATION_GOODSOUT;
+        $out->constants->WHEREWARE_RETURNS_LOCATION->value              = WHEREWARE_RETURNS_LOCATION;
+        $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for automatic composite creation';
         $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->definition     = 'Automatic fulfilment from assembly to goods out (pick list straight to goods out)';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->definition   = 'Code prefix for identifying destination locations';
         $out->constants->WHEREWARE_LOCATION_GOODSOUT->definition        = 'Warehouse code for finding/selecting goods-out bins';
+        $out->constants->WHEREWARE_RETURNS_LOCATION->definition         = 'Location for accepting returns';
+        $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         return $out;
     }
 
@@ -525,7 +531,8 @@ class Whereware {
                         $task->location,
                         $task->scheduled_date,
                         $task->name,
-                        $task->postcode
+                        $task->postcode,
+                        null
                     );
                 }
                 catch (\Exception $e) {
@@ -586,7 +593,6 @@ class Whereware {
         try {
 // TODO
 sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
-$this->hpapi->diagnostic (print_r($assigns,true));
             $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
                 $result = $this->hpapi->dbCall (
@@ -712,6 +718,174 @@ $this->hpapi->diagnostic (print_r($assigns,true));
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
+    }
+
+    public function returns ($returns) {
+        /*
+            1. Get task project and stock (status, quantity), next available scheduled_date
+               [First available scheduled date after the original task at the destination location]
+               [Usually the day after the original task and in the past - the schedule is later corrected by admin]
+            2. Check the stock
+            2. Create a booking and a new task for the same destination location and new scheduled date
+            4. Move (fulfilled) stock from a destination to a returns bin
+            5. Move (pending) the same stock back to the destination
+            6. Assign the pending moves to the new task and the same team
+            7. Manual adjustment of the new task scheduled date
+            {
+                task_id : 123,
+                team : T-1,
+                moves : [
+                    {
+                        quantity : 1,
+                        sku : SKU-1,
+                        from_location : D-CUR-1234, // The destination
+                        to_location : R-1, // Warehouse returns area
+                        to_bin : DE-1 // One of a few returns bins by product type
+                    },
+                    ...
+                ]
+            }
+        */
+        // Get the task (one row per move)
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwTask',
+                $returns->task_id
+            );
+            $project            = $moves[0]->project;
+            $rebook_date        = $moves[0]->rebook_date;
+            $moves              = $this->hpapi->parse2D ($result);
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        // Check the task stock
+        foreach ($returns->moves as $i=>$move) {
+            $move->stocked = false;
+            foreach ($moves as $m) {
+                if ($m->sku==$move->sku) {
+                    if ($m->status=='F' && $m->quantity>=$move->quantity) {
+                        $move->stocked = true;
+                    }
+                    break;
+                }
+            }
+            if (!$move->stocked) {
+                throw new \Exception (WHEREWARE_STR_QTY_INSUFFICIENT.' SKU='.$move->sku);
+                return false;
+            }
+        }
+        // Insert booking and rebook task
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwBookingInsert'
+            );
+            $booking_id = $result[0]['id'];
+            $result = $this->hpapi->dbCall (
+                'wwTaskInsert',
+                $project,
+                $returns->team,
+                $returns->from_location,
+                $rebook_date,
+                '',
+                '',
+                $return->task_id // audits original task
+            );
+            $task_id = $result[0]['id'];
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB_INSERT);
+            return false;
+        }
+        $assigns = [];
+        // Complete return
+        foreach ($return->moves as $i=>$move) {
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwMoveInsert',
+                    $this->hpapi->email,
+                    '',
+                    $booking_id,
+                    'F',
+                    $move->quantity,
+                    $move->sku,
+                    $move->from_location,
+                    '',
+                    $move->to_location,
+                    $move->to_bin
+                );
+                $assigns[] = [
+                    'wwMoveAssign',
+                    $this->hpapi->email,
+                    $result[0]['id'],
+                    $project,
+                    $return->task_id, // the old task
+                    $return->team
+                ];
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                return false;
+            }
+        }
+        // Rebook stock to destination (status P) and assign as a new task
+        foreach ($return->moves as $move) {
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwMoveInsert',
+                    $this->hpapi->email,
+                    '',
+                    $booking_id,
+                    'P',
+                    $move->quantity,
+                    $move->sku,
+                    $move->to_location, // reversed origin and target bins/locations
+                    $move->to_bin,
+                    $move->from_location,
+                    ''
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                return false;
+            }
+            $assigns[] = [
+                'wwMoveAssign',
+                $this->hpapi->email,
+                $result[0]['id'],
+                $project,
+                $task_id,
+                $return->team
+            ];
+        }
+// TODO
+sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
+        try {
+            $error = WHEREWARE_STR_DB_UPDATE;
+            foreach ($assigns as $a) {
+                $result = $this->hpapi->dbCall (
+                    ...$a
+                );
+            }
+            $moves = [];
+            $error = WHEREWARE_STR_DB;
+            $result = $this->hpapi->dbCall (
+                'wwBooking',
+                $booking_id
+            );
+            $moves = $this->hpapi->parse2D ($result);
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception ($error);
+            return false;
+        }
+        return $moves;
     }
 
     private function searchLike ($search_terms) {
@@ -869,6 +1043,57 @@ $this->hpapi->diagnostic (print_r($assigns,true));
             }
         }
         return $tasks;
+    }
+
+    public function team ($team_code) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwTeam',
+                $team_code
+            );
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        $tasks          = $this->hpapi->parse2D ($result);
+        $team           = new \stdClass ();
+        $team->team     = $team_code;
+        $team->tasks    = [];
+        foreach ($result as $row) {
+            $team->hidden               = $row['hidden'];
+            $team->name                 = $row['name'];
+            $task                       = new \stdClass ();
+            $task->id                   = $row['id'];
+            $task->updated              = $row['updated'];
+            $task->rebook               = $row['rebook'];
+            $task->scheduled_date       = $row['scheduled_date'];
+            $task->skus                 = [];
+            if ($row['skus']) {
+                $skus                   = explode (';;',$row['skus']);
+                foreach ($skus as $s) {
+                    $s                  = explode ('::',$s);
+                    $sku                = new \stdClass ();
+                    $sku->sku           = $s[0];
+                    $sku->quantity      = $s[1];
+                    $task->skus[]       = $sku;
+                }
+            }
+            $task->location             = $row['location'];
+            $task->location_name        = $row['location_name'];
+            $task->location_territory   = $row['location_territory'];
+            $task->location_postcode    = $row['location_postcode'];
+            $task->location_address_1   = $row['location_address_1'];
+            $task->location_address_2   = $row['location_address_2'];
+            $task->location_address_3   = $row['location_address_3'];
+            $task->location_town        = $row['location_town'];
+            $task->location_region      = $row['location_region'];
+            $task->location_map_url     = $row['location_map_url'];
+            $task->location_notes       = $row['location_notes'];
+            $team->tasks[]              = $task;
+        }
+        return $team;
     }
 
     public function teams ( ) {

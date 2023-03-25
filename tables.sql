@@ -245,7 +245,7 @@ CREATE TABLE IF NOT EXISTS `ww_task` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `rebook` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `rebooks_task_id` int(11) unsigned DEFAULT NULL,
   `project` char(64) CHARACTER SET ascii NOT NULL,
   `location` char(64) CHARACTER SET ascii NOT NULL,
   `team` char(64) CHARACTER SET ascii DEFAULT NULL,
@@ -255,6 +255,9 @@ CREATE TABLE IF NOT EXISTS `ww_task` (
   UNIQUE KEY `team_location` (`team`,`location`),
   KEY `team` (`team`),
   KEY `location` (`location`),
+  KEY `project` (`project`),
+  KEY `rebooks_task_id` (`rebooks_task_id`),
+  CONSTRAINT `ww_rebooks_task_task` FOREIGN KEY (`rebooks_task_id`) REFERENCES `ww_task` (`id`),
   CONSTRAINT `ww_task_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`),
   CONSTRAINT `ww_task_location` FOREIGN KEY (`location`) REFERENCES `ww_location` (`location`),
   CONSTRAINT `ww_task_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)

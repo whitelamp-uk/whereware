@@ -909,6 +909,278 @@ export class Whereware extends Generic {
         }
     }
 
+    returnsOptions (teamSelect,bookButton,closeButtonSkus,closeButtonBooked) {
+        var i,o;
+        for (i=0;this.data.whereware.teams[i];i++) {
+            o = document.createElement ('option');
+            o.value = this.data.whereware.teams[i].team;
+            o.innerText = this.data.whereware.teams[i].name;
+            teamSelect.appendChild (o);
+        }
+        teamSelect.addEventListener ('change',this.returnsTasks.bind(this));
+        bookButton.addEventListener ('click',this.returnsBook.bind(this));
+        closeButtonSkus.addEventListener ('click',this.returnsClose.bind(this));
+        closeButtonBooked.addEventListener ('click',this.returnsClose.bind(this));
+        this.parameters.wherewareTeamSelect  = teamSelect;
+    }
+
+    async returnsBook (evt) {
+        var bin,div,locn,msg,qty,row,rows,rtn,returns,scn,scn2,sku,table,tbody,tid;
+        table = evt.currentTarget.closest ('table');
+        scn = table.closest ('section');
+        tbody = this.qs (table,'tbody');
+        rows = this.qsa (tbody,'tr');
+        returns = {
+            task_id : null,
+            team : null,
+            moves : []
+        }
+        for (row of rows) {
+            if (this.qs(row,'input[type="checkbox"]').checked) {
+                qty = this.qs(row,'[name="quantity"]').value;
+                sku = this.qs(row,'[data-sku]').dataset.sku;
+                locn = this.qs(row,'[name="location"]').value;
+                bin = this.qs(row,'[name="bin"]').value;
+                if (qty && locn && bin) {
+                    returns.task_id = row.dataset.task_id;
+                    returns.team = row.dataset.team;
+                    returns.moves.push (
+                        {
+                            quantity: qty,
+                            sku : sku,
+                            from_location: row.dataset.from_location,
+                            to_location: locn,
+                            to_bin: bin
+                        }
+                    );
+                }
+                else {
+                    this.splash (2,'Selected items must have quantity, location and bin','Missing data');
+                    return;
+                }
+            }
+        }
+        if (returns.moves.length>0) {
+            try {
+                rtn = await this.returnsRequest (returns);
+            }
+            catch (e) {
+                msg = e.message;
+            }
+        }
+        else {
+            this.splash (2,'No returns were selected','Missing data');
+            return;
+        }
+        // Close view
+        scn.classList.remove ('active');
+        // Report results
+        scn = this.qs (this.restricted,'#returns-booked');
+        table = this.qs (scn,'table');
+        tbody = this.qs (table,'tbody');
+        tbody.innerHTML = '';
+        if (rtn && rtn.moves) {
+            table.classList.add ('active');
+            for (i=0;rtn.moves[i];i++) {
+                tr = document.createElement ('tr');
+                // booking ID
+                td = document.createElement ('td');
+                td.innerText = '#' + rtn.moves[i].booking_id;
+                tr.appendChild (td);
+                // team
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].team;
+                tr.appendChild (td);
+                // task
+                td = document.createElement ('td');
+                td.innerText = '#' + rtn.moves[i].task_id;
+                tr.appendChild (td);
+                // status
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].status;
+                tr.appendChild (td);
+                // quantity
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].quantity;
+                tr.appendChild (td);
+                // sku
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].sku;
+                tr.appendChild (td);
+                // from
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].from_location + ' / ' + rtn.moves[i].from_bin;
+                tr.appendChild (td);
+                // to
+                td = document.createElement ('td');
+                td.innerText = rtn.moves[i].to_location + ' / ' + rtn.moves[i].to_bin;
+                tr.appendChild (td);
+                // append row
+                tbody.appendChild (tr);
+            }
+        }
+        else {
+            table.classList.remove ('active');
+            div = document.createElement ('div');
+            div.classList.add ('error');
+            div.innerText = msg;
+            scn.appendChild (div);
+        }
+        scn.classList.add ('active');
+    }
+
+    async returnsClose (evt) {
+        evt.currentTarget.parentElement.classList.remove ('active');
+    }
+
+    async returnsRequest (moves) {
+        var err,request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "returns"
+               ,"arguments" : moves
+            }
+        }
+        try {
+            response = await this.request (request);
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('projectUpdateRequest(): '+e.message);
+            err = e.message.split (' ');
+            if (err[1]=='403') {
+                err = 'You do not have permission to execute this process';
+            }
+            else {
+                err = 'Booking process failed to complete';
+            }
+            throw new Error (err);
+            return false;
+        }
+    }
+
+    async returnsTasks (evt) {
+        var btn,cnt,i,task,tasks,td,team,tr,rows,section;
+        team = evt.currentTarget.value;
+        if (!team) {
+            return;
+        }
+        await this.teamRequest (team);
+        section = this.qs (this.restricted,'#returns-tasks');
+        section.classList.remove ('active');
+        rows = this.qs (this.restricted,'#returns-tasks-rows');
+        rows.innerHTML = '';
+        cnt = 0;
+        for (i=0;this.data.whereware.team.tasks[i];i++) {
+            task = this.data.whereware.team.tasks[i];
+            if (!task.rebook) {
+                // Create row
+                tr = document.createElement ('tr');
+                tr.dataset.team = this.data.whereware.team.team;
+                // Team
+                td = document.createElement ('td');
+                td.innerText = this.data.whereware.team.name;
+                tr.appendChild (td);
+                // Location
+                td = document.createElement ('td');
+                td.innerText = task.location_name;
+                tr.appendChild (td);
+                // Task date
+                td = document.createElement ('td');
+                td.innerText = task.scheduled_date;
+                tr.appendChild (td);
+                // Button
+                td = document.createElement ('td');
+                btn = document.createElement ('button');
+                btn.dataset.id = task.id;
+                btn.innerText = 'Returns';
+                btn.addEventListener ('click',this.returnsSkus.bind(this));
+                td.appendChild (btn);
+                tr.appendChild (td);
+                // Append row
+                rows.appendChild (tr);
+                cnt++;
+            }
+        }
+        if (cnt>0) {
+            section.classList.add ('active');
+        }
+    }
+
+    async returnsSkus (evt) {
+        var b,i,ip,h3,j,opt,rows,section,sel,task,td,tn,tr;
+        task = this.find (this.data.whereware.team.tasks,'id',evt.currentTarget.dataset.id,false);
+        section = this.qs (this.restricted,'#returns-skus');
+        h3 = this.qs (section,'h3');
+        h3.innerText = task.location_name + ' ' + task.scheduled_date;
+        section.classList.remove ('active');
+        rows = this.qs (this.restricted,'#returns-skus-rows');
+        rows.innerHTML = '';
+        for (i=0;task.skus[i];i++) {
+            // Create row
+            tr = document.createElement ('tr');
+            tr.dataset.task_id = task.id;
+            tr.dataset.from_location = task.location;
+            tr.dataset.team = this.data.whereware.team.team;
+            // Quantity
+            td = document.createElement ('td');
+            ip = document.createElement ('input');
+            ip.classList.add ('quantity');
+            ip.setAttribute ('type','number');
+            ip.setAttribute ('min',1);
+            ip.setAttribute ('max',task.skus[i].quantity);
+            ip.setAttribute ('step',1);
+            ip.setAttribute ('name','quantity');
+            ip.setAttribute ('value',1);
+            td.appendChild (ip);
+            tr.appendChild (td);
+            // SKU
+            td = document.createElement ('td');
+            td.dataset.sku = task.skus[i].sku;
+            td.innerText = task.skus[i].sku;
+            tr.appendChild (td);
+            // Return location
+            td = document.createElement ('td');
+            ip = document.createElement ('input');
+            ip.classList.add ('location');
+            ip.setAttribute ('type','text');
+            ip.setAttribute ('name','location');
+            ip.setAttribute ('value',this.data.config.constants.WHEREWARE_RETURNS_LOCATION.value);
+            td.appendChild (ip);
+            tn = document.createTextNode (' / ');
+            td.appendChild (tn);
+            sel = document.createElement ('select');
+            sel.classList.add ('bin');
+            sel.setAttribute ('name','bin');
+            opt = document.createElement ('option');
+            opt.setAttribute ('value','');
+            opt.innerText = 'Select:';
+            sel.appendChild (opt);
+            for (j=0;j<this.data.config.constants.WHEREWARE_RETURNS_BINS.value.length;j++) {
+                b = this.data.config.constants.WHEREWARE_RETURNS_BINS.value[j];
+                opt = document.createElement ('option');
+                opt.setAttribute ('value',b);
+                opt.innerText = b;
+                sel.appendChild (opt);
+            }
+            td.appendChild (sel);
+            tr.appendChild (td);
+            // Select by checkbox
+            td = document.createElement ('td');
+            ip = document.createElement ('input');
+            ip.setAttribute ('type','checkbox');
+            td.appendChild (ip);
+            tr.appendChild (td);
+            // Append row
+            rows.appendChild (tr);
+        }
+        section.classList.add ('active');
+    }
+
     skuList (container,response,composite=false) {
         var count,dt,dtp,i,lk,k,mod,noresults,sm,sku,skus;
         noresults = this.qs (container,'tr.no-results');
@@ -1359,6 +1631,31 @@ export class Whereware extends Generic {
         }
         catch (e) {
             console.log ('tasksRequest(): could not get tasks for project '+project+': '+e.message);
+            return false;
+        }
+    }
+
+    async teamRequest (team) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "team"
+               ,"arguments" : [
+                    team
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.team = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('teamRequest(): could not get team: '+e.message);
             return false;
         }
     }
