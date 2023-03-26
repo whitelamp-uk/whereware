@@ -925,7 +925,7 @@ export class Whereware extends Generic {
     }
 
     async returnsBook (evt) {
-        var bin,div,locn,msg,qty,row,rows,rtn,returns,scn,scn2,sku,table,tbody,tid;
+        var bin,div,e,es,i,locn,msg,qty,row,rows,rtn,returns,scn,scn2,sku,table,tbody,td,tid,tr;
         table = evt.currentTarget.closest ('table');
         scn = table.closest ('section');
         tbody = this.qs (table,'tbody');
@@ -979,41 +979,41 @@ export class Whereware extends Generic {
         table = this.qs (scn,'table');
         tbody = this.qs (table,'tbody');
         tbody.innerHTML = '';
-        if (rtn && rtn.moves) {
+        if (rtn) {
             table.classList.add ('active');
-            for (i=0;rtn.moves[i];i++) {
+            for (i=0;rtn[i];i++) {
                 tr = document.createElement ('tr');
                 // booking ID
                 td = document.createElement ('td');
-                td.innerText = '#' + rtn.moves[i].booking_id;
+                td.innerText = '#' + rtn[i].booking_id;
                 tr.appendChild (td);
                 // team
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].team;
+                td.innerText = rtn[i].team;
                 tr.appendChild (td);
                 // task
                 td = document.createElement ('td');
-                td.innerText = '#' + rtn.moves[i].task_id;
+                td.innerText = '#' + rtn[i].task_id;
                 tr.appendChild (td);
                 // status
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].status;
+                td.innerText = rtn[i].status;
                 tr.appendChild (td);
                 // quantity
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].quantity;
+                td.innerText = rtn[i].quantity;
                 tr.appendChild (td);
                 // sku
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].sku;
+                td.innerText = rtn[i].sku;
                 tr.appendChild (td);
                 // from
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].from_location + ' / ' + rtn.moves[i].from_bin;
+                td.innerText = rtn[i].from_location + ' / ' + rtn[i].from_bin;
                 tr.appendChild (td);
                 // to
                 td = document.createElement ('td');
-                td.innerText = rtn.moves[i].to_location + ' / ' + rtn.moves[i].to_bin;
+                td.innerText = rtn[i].to_location + ' / ' + rtn[i].to_bin;
                 tr.appendChild (td);
                 // append row
                 tbody.appendChild (tr);
@@ -1021,6 +1021,10 @@ export class Whereware extends Generic {
         }
         else {
             table.classList.remove ('active');
+            es = this.qsa (scn,'div.error');
+            for (e of es) {
+                e.remove ();
+            }
             div = document.createElement ('div');
             div.classList.add ('error');
             div.innerText = msg;
@@ -1033,7 +1037,7 @@ export class Whereware extends Generic {
         evt.currentTarget.parentElement.classList.remove ('active');
     }
 
-    async returnsRequest (moves) {
+    async returnsRequest (returns) {
         var err,request,response;
         request     = {
             "email" : this.access.email.value
@@ -1042,7 +1046,9 @@ export class Whereware extends Generic {
                ,"package" : "whereware-server"
                ,"class" : "\\Whereware\\Whereware"
                ,"method" : "returns"
-               ,"arguments" : moves
+               ,"arguments" : [
+                    returns
+                ]
             }
         }
         try {
@@ -1052,7 +1058,12 @@ export class Whereware extends Generic {
         catch (e) {
             console.log ('projectUpdateRequest(): '+e.message);
             err = e.message.split (' ');
-            if (err[1]=='403') {
+            if (err[0]=='611') {
+                err.shift ();
+                err.shift ();
+                err = err.join(' ') + ' - this could be because either (a) the return has already been recorded or (b) the task fulfilment was never recorded.';
+            }
+            else if (err[1]=='403') {
                 err = 'You do not have permission to execute this process';
             }
             else {
@@ -1077,7 +1088,7 @@ export class Whereware extends Generic {
         cnt = 0;
         for (i=0;this.data.whereware.team.tasks[i];i++) {
             task = this.data.whereware.team.tasks[i];
-            if (!task.rebook) {
+            if (!task.rebooks_task_id) {
                 // Create row
                 tr = document.createElement ('tr');
                 tr.dataset.team = this.data.whereware.team.team;

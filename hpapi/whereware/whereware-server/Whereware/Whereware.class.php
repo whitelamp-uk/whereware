@@ -752,9 +752,8 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                 'wwTask',
                 $returns->task_id
             );
-            $project            = $moves[0]->project;
-            $rebook_date        = $moves[0]->rebook_date;
             $moves              = $this->hpapi->parse2D ($result);
+            $task               = $moves[0];
         }
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
@@ -785,15 +784,15 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
             $booking_id = $result[0]['id'];
             $result = $this->hpapi->dbCall (
                 'wwTaskInsert',
-                $project,
-                $returns->team,
-                $returns->from_location,
-                $rebook_date,
+                $task->project,
+                $task->team,
+                $task->location,
+                $task->rebook_date,
                 '',
                 '',
-                $return->task_id // audits original task
+                $task->id // audits original task
             );
-            $task_id = $result[0]['id'];
+            $task_id_new = $result[0]['id'];
         }
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
@@ -802,7 +801,7 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         }
         $assigns = [];
         // Complete return
-        foreach ($return->moves as $i=>$move) {
+        foreach ($returns->moves as $i=>$move) {
             try {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
@@ -821,9 +820,9 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     'wwMoveAssign',
                     $this->hpapi->email,
                     $result[0]['id'],
-                    $project,
-                    $return->task_id, // the old task
-                    $return->team
+                    $task->project,
+                    $task->id, // the old task
+                    $task->team
                 ];
             }
             catch (\Exception $e) {
@@ -833,7 +832,7 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
             }
         }
         // Rebook stock to destination (status P) and assign as a new task
-        foreach ($return->moves as $move) {
+        foreach ($returns->moves as $move) {
             try {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
@@ -858,9 +857,9 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                 'wwMoveAssign',
                 $this->hpapi->email,
                 $result[0]['id'],
-                $project,
-                $task_id,
-                $return->team
+                $task->project,
+                $task_id_new,
+                $task->team
             ];
         }
 // TODO
@@ -872,7 +871,6 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     ...$a
                 );
             }
-            $moves = [];
             $error = WHEREWARE_STR_DB;
             $result = $this->hpapi->dbCall (
                 'wwBooking',
@@ -1067,7 +1065,7 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
             $task                       = new \stdClass ();
             $task->id                   = $row['id'];
             $task->updated              = $row['updated'];
-            $task->rebook               = $row['rebook'];
+            $task->rebooks_task_id      = $row['rebooks_task_id'];
             $task->scheduled_date       = $row['scheduled_date'];
             $task->skus                 = [];
             if ($row['skus']) {

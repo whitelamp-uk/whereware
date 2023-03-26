@@ -493,6 +493,44 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwTask`$$
+CREATE PROCEDURE `wwTask`(
+  IN `taskId` int(11) unsigned
+)
+BEGIN
+  SELECT
+    `tk`.*
+   ,IFNULL(`tk_nxt`.`rebook_date`,DATE_ADD(CURDATE(),INTERVAL 1 DAY)) AS `rebook_date`
+   ,`mv`.`quantity`-IFNULL(`mv_rtn`.`quantity`,0) AS `quantity`
+   ,`mv`.`sku`
+   ,`mv`.`status`
+   ,`mv`.`order_ref`
+  FROM `ww_task` AS `tk`
+  JOIN `ww_move` AS `mv`
+    ON `mv`.`cancelled`=0
+   AND `mv`.`task_id`=`tk`.`id`
+   AND `mv`.`to_location`=`tk`.`location`
+  LEFT JOIN `ww_move` AS `mv_rtn`
+         ON `mv_rtn`.`id`!=`mv`.`id` -- this should be the case anyway...
+        AND `mv_rtn`.`cancelled`=0
+        AND `mv_rtn`.`task_id`=`tk`.`id`
+        AND `mv_rtn`.`from_location`=`tk`.`location`
+        AND `mv_rtn`.`sku`=`mv`.`sku`
+  LEFT JOIN (
+    SELECT
+      `id`
+     ,DATE_SUB(MIN(`scheduled_date`),INTERVAL 1 DAY) AS `rebook_date`
+    FROM `ww_task`
+    WHERE `id`=taskId
+      AND `scheduled_date`>CURDATE()
+  )      AS `tk_nxt`
+         ON `tk_nxt`.`id`=`tk`.`id`
+  WHERE `tk`.`id`=taskId
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwTaskInsert`$$
 CREATE PROCEDURE `wwTaskInsert`(
    IN `projectCode` char(64)
@@ -501,13 +539,12 @@ CREATE PROCEDURE `wwTaskInsert`(
   ,IN `scheduledDate` date
   ,IN `locationName` varchar(64)
   ,IN `locationPostcode` char(64)
-  ,IN `rebooksTaskId` int(11) unsigned null
+  ,IN `rebooksTaskId` int(11) unsigned
 )
 BEGIN
   INSERT INTO `ww_location`
   SET
     `updated`=NOW()
-   ,`rebooks_task_id`=rebooksTaskId
    ,`location`=locationCode
    ,`name`=locationName
    ,`postcode`=locationPostcode
@@ -517,14 +554,28 @@ BEGIN
   INSERT INTO `ww_task`
   SET
     `updated`=NOW()
+   ,`rebooks_task_id`=rebooksTaskId
    ,`location`=locationCode
    ,`scheduled_date`=scheduledDate
    ,`project`=projectCode
    ,`team`=teamCode
   ON DUPLICATE KEY UPDATE
     `location`=locationCode
+   ,`scheduled_date`=scheduledDate
   ;
-  SELECT LAST_INSERT_ID() AS `id`
+  IF ROW_COUNT()>0 THEN
+    SELECT
+      LAST_INSERT_ID() AS `id`
+    ;
+  ELSE
+    SELECT
+      `id`
+    FROM `ww_task`
+    WHERE `location`=locationCode
+      AND `scheduled_date`=scheduledDate
+    LIMIT 0,1
+    ;
+  END IF
   ;
 END$$
 
@@ -609,7 +660,7 @@ BEGIN
    ,`tm`.`name`
    ,`tk`.`id`
    ,`tk`.`updated`
-   ,`tk`.`rebook`
+   ,`tk`.`rebooks_task_id`
    ,`tk`.`location`
    ,`tk`.`scheduled_date`
    ,IF(
