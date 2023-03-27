@@ -129,6 +129,7 @@ BEGIN
      ,SUM(`quantity`*(`status`='R')) AS `raised`
     FROM `ww_move`
     WHERE `cancelled`=0
+      AND `status` IN ('R','T','F')
       AND `to_location`=Location
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
@@ -165,6 +166,7 @@ BEGIN
      ,SUM(`quantity`*(`status`='R')) AS `spoken_for`
     FROM `ww_move`
     WHERE `cancelled`=0
+      AND `status` IN ('R','T','F')
       AND `from_location`=Location
       AND (
            Sku_starts_with_or_empty_for_all IS NULL

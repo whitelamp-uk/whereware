@@ -116,7 +116,7 @@ BEGIN
   ;
   SELECT USER() INTO usr
   ;
-  IF (usr!='whereware@localhost') THEN
+  IF (usr!='whereware@localhost' && usr!='hpapi@localhost') THEN
     SET NEW.`updater` = usr
     ;
   END IF
@@ -190,7 +190,7 @@ BEGIN
   ;
   SELECT USER() INTO usr
   ;
-  IF (usr!='whereware@localhost') THEN
+  IF (usr!='whereware@localhost' && usr!='hpapi@localhost') THEN
     SET NEW.`updater` = usr
     ;
   END IF
