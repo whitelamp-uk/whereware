@@ -875,7 +875,7 @@ export class Whereware extends Generic {
         for (i=0;this.data.whereware.projects[i];i++) {
             o = document.createElement ('option');
             o.value = this.data.whereware.projects[i].project;
-            o.innerText = this.data.whereware.projects[i].name;
+            o.innerText = this.data.whereware.projects[i].project + ' ' + this.data.whereware.projects[i].name;
             projectSelect.appendChild (o);
         }
         projectSelect.addEventListener ('change',this.projectView.bind(this));
