@@ -1200,76 +1200,78 @@ export class Whereware extends Generic {
             sku.remove ();
         }
         count = 0;
-        for (i=0;response.skus[i];i++) {
-            count++;
-            sku = document.createElement ('tr');
-            sku.classList.add ('result');
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('updated');
-            k.textContent = response.skus[i].updated;
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('adminer');
-            lk = document.createElement ('a');
-            lk.classList.add ('whereware-link');
-            lk.dataset.action = 'select';
-            lk.dataset.table = 'ww_sku';
-            lk.dataset.hidden = response.skus[i].hidden;
-            lk.dataset.column = 'sku';
-            lk.dataset.operator = '=';
-            lk.dataset.value = response.skus[i].sku;
-            lk.textContent = '↗';
-            lk.addEventListener ('click',this.adminerLink.bind(this));
-            k.appendChild (lk);
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('sku');
-            k.classList.add ('button');
-            k.textContent = response.skus[i].sku;
-            k.classList.add ('navigator');
-            k.dataset.insert = 'orders';
-            k.dataset.target = 'orders';
-            k.dataset.parameter = 'wherewareSku';
-            k.dataset.value = response.skus[i].sku;
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('additional_ref');
-            k.textContent = response.skus[i].additional_ref;
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('name');
-            k.textContent = response.skus[i].name;
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            if (composite) {
-                k.title = 'Workflow points to this composite storage bin';
+        if ('skus' in response) {
+            for (i=0;response.skus[i];i++) {
+                count++;
+                sku = document.createElement ('tr');
+                sku.classList.add ('result');
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('updated');
+                k.textContent = response.skus[i].updated;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('adminer');
+                lk = document.createElement ('a');
+                lk.classList.add ('whereware-link');
+                lk.dataset.action = 'select';
+                lk.dataset.table = 'ww_sku';
+                lk.dataset.hidden = response.skus[i].hidden;
+                lk.dataset.column = 'sku';
+                lk.dataset.operator = '=';
+                lk.dataset.value = response.skus[i].sku;
+                lk.textContent = '↗';
+                lk.addEventListener ('click',this.adminerLink.bind(this));
+                k.appendChild (lk);
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('sku');
+                k.classList.add ('button');
+                k.textContent = response.skus[i].sku;
+                k.classList.add ('navigator');
+                k.dataset.insert = 'orders';
+                k.dataset.target = 'orders';
+                k.dataset.parameter = 'wherewareSku';
+                k.dataset.value = response.skus[i].sku;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('additional_ref');
+                k.textContent = response.skus[i].additional_ref;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('name');
+                k.textContent = response.skus[i].name;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                if (composite) {
+                    k.title = 'Workflow points to this composite storage bin';
+                }
+                else {
+                    k.title = 'Component recommended bin (irrelevant to stock moves or inventory calculations)';
+                }
+                k.classList.add ('bin');
+                k.textContent = response.skus[i].bin;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('notes');
+                dt = document.createElement ('details');
+                sm = document.createElement ('summary');
+                sm.textContent = 'Notes';
+                dt.appendChild (sm);
+                dtp = document.createElement ('p');
+                dtp.textContent = response.skus[i].notes;
+                dt.appendChild (dtp);
+                k.appendChild (dt);
+                sku.appendChild (k);
+                // Append row
+                container.appendChild (sku);
             }
-            else {
-                k.title = 'Component recommended bin (irrelevant to stock moves or inventory calculations)';
-            }
-            k.classList.add ('bin');
-            k.textContent = response.skus[i].bin;
-            sku.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('notes');
-            dt = document.createElement ('details');
-            sm = document.createElement ('summary');
-            sm.textContent = 'Notes';
-            dt.appendChild (sm);
-            dtp = document.createElement ('p');
-            dtp.textContent = response.skus[i].notes;
-            dt.appendChild (dtp);
-            k.appendChild (dt);
-            sku.appendChild (k);
-            // Append row
-            container.appendChild (sku);
         }
         this.navigatorsListen (container);
         if (count>0) {
