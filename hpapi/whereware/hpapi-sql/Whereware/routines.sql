@@ -304,18 +304,32 @@ CREATE PROCEDURE `wwOrders`(
 )
 BEGIN
   SELECT
-    `m`.`order_ref`
-   ,COUNT(DISTINCT IFNULL(`booking_id`,0)) AS `bookings`
-   ,GROUP_CONCAT(DISTINCT `m`.`to_location` SEPARATOR ', ') AS `to_locations`
-   ,GROUP_CONCAT(DISTINCT `l`.`name` SEPARATOR ', ') AS `to_locations_destination`
+    sku AS `sku`
+   ,`m`.`order_ref`
    ,MAX(`m`.`updated`) AS `order_updated`
+   ,COUNT(DISTINCT IFNULL(`m`.`booking_id`,0)) AS `bookings`
+   ,IFNULL(`mdest`.`to_location`,'') AS `destination_last`
+   ,IFNULL(`l`.`name`,'') AS `destination_last_name`
   FROM `ww_move` AS `m`
+  LEFT JOIN (
+    SELECT
+      `order_ref`
+     ,MAX(`id`) AS `id_latest`
+    FROM `ww_move`
+    WHERE `cancelled`=0
+      AND `sku`=sku
+      AND `to_location` LIKE CONCAT(destinationsLike,'%')
+    GROUP BY `order_ref`
+  ) AS `mlast`
+    ON `mlast`.`order_ref`=`m`.`order_ref`
+  LEFT JOIN `ww_move` AS `mdest`
+         ON `mdest`.`id`=`mlast`.`id_latest`
   LEFT JOIN `ww_location` as `l`
-    ON `l`.`location`=`m`.`to_location`
-   AND `l`.`location` LIKE CONCAT(destinationsLike,'%')
+         ON `l`.`location`=`mdest`.`to_location`
   WHERE `m`.`cancelled`=0
+    AND `m`.`order_ref`!=''
     AND `m`.`sku`=sku
-  GROUP BY `m`.`order_ref`
+  GROUP BY `order_ref`
   ORDER BY `order_updated` DESC
   LIMIT 0,rowsLimit
   ;

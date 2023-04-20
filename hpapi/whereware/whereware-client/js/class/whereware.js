@@ -295,13 +295,8 @@ export class Whereware extends Generic {
             order.classList.add ('result');
             // Cell:
             k = document.createElement ('td');
-            k.classList.add ('to_locations');
-            k.textContent = rows[i].to_locations;
-            order.appendChild (k);
-            // Cell:
-            k = document.createElement ('td');
-            k.classList.add ('to_locations_target');
-            k.textContent = rows[i].to_locations_target;
+            k.classList.add ('destination_last');
+            k.textContent = rows[i].destination_last + ' ' + rows[i].destination_last_name;
             order.appendChild (k);
             // Cell:
             k = document.createElement ('td');
