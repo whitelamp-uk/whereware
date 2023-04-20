@@ -292,7 +292,7 @@ class Whereware {
 
     public function orders ($order_ref) {
         $destination_locations_start_with = WHEREWARE_LOCATIONS_DESTINATIONS;
-        $limit = WHEREWARE_RESULTS_LIMIT;
+        $limit = WHEREWARE_RESULTS_LIMIT + 1;
         $rtn = new \stdClass ();
         $rtn->sql = "CALL `wwOrders`('','','','')";
         $rtn->orders = [];
