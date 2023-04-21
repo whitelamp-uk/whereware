@@ -143,7 +143,8 @@ class Whereware {
         {
             composite_quantity: 1,
             composite_sku: COMPOSITE-1,
-            target_location: C-A,
+            target_location: GO-1,
+            target_bin: ,
             order_ref: MARK-1234,
             picks: [
                 {
@@ -209,7 +210,7 @@ class Whereware {
             'quantity' => $obj->composite_quantity,
             'sku' => $obj->composite_sku,
             'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
-            'from_bin' => $pick->bin,
+            'from_bin' => $sku->bin,
             'to_location' => $obj->target_location,
             'to_bin' => $to_bin
         ];
