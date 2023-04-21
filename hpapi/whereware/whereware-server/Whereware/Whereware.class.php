@@ -51,38 +51,6 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
-/*
-        // For example:
-        $composite = [
-            'sku' = 'TV-99',
-            'bin' = 'Z-12'
-        ];
-        foreach ($picks as $sku) {
-            // Each pick is a quantity of a specific component SKU in the composite blueprint
-            // For example:
-            $sku = [
-                'sku' => 'CBL-001',
-                'location' => 'W-1',
-                'bin' => 'Q-123',
-                'qty' => 1
-            ];
-            try {
-                // Against $order_ref/$booking_id, status=[R]aised, move $sku[quantity] X $sku[sku] from/to:
-                if (WHEREWARE_LOCATION_ASSEMBLY) {
-                    WHEREWARE_LOCATION_COMPONENT/$sku[bin]      ===> WHEREWARE_LOCATION_ASSEMBLY/$composite[bin]
-                    WHEREWARE_LOCATION_ASSEMBLY/$composite[bin] ===> WHEREWARE_LOCATION_GOODSOUT/$composite[bin]
-                }
-                else {
-                    WHEREWARE_LOCATION_COMPONENT/$sku[bin]      ===> WHEREWARE_LOCATION_GOODSOUT/$composite[bin]
-                }
-            }
-            catch () {
-                update ww_move set cancelled=1 where order_ref='$order_ref' and booking_id='$booking_id';
-                throw new \Exception ();
-                return false;
-            }
-        }
-*/
         return $booking_ref;
     }
 
@@ -133,24 +101,21 @@ class Whereware {
         }
         $out->constants = new \StdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY                    = new \stdClass ();
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL                 = new \stdClass ();
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLED                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_COMPONENT                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS               = new \stdClass ();
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT                    = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_LOCATION                     = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->value          = WHEREWARE_ASSEMBLY_AUTO_FULFIL ? 'Yes' : 'No';
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLED->value            = WHEREWARE_LOCATION_ASSEMBLED;
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->value        = WHEREWARE_LOCATIONS_DESTINATIONS;
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT->value             = WHEREWARE_LOCATION_GOODSOUT;
         $out->constants->WHEREWARE_RETURNS_LOCATION->value              = WHEREWARE_RETURNS_LOCATION;
         $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
-        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for automatic composite creation';
-        $out->constants->WHEREWARE_ASSEMBLY_AUTO_FULFIL->definition     = 'Automatic fulfilment from assembly to goods out (pick list straight to goods out)';
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for pick\'n\'book';
+        $out->constants->WHEREWARE_LOCATION_ASSEMBLED->definition       = 'Assembled composite default location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->definition   = 'Code prefix for identifying destination locations';
-        $out->constants->WHEREWARE_LOCATION_GOODSOUT->definition        = 'Warehouse code for finding/selecting goods-out bins';
         $out->constants->WHEREWARE_RETURNS_LOCATION->definition         = 'Location for accepting returns';
         $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         return $out;
@@ -199,64 +164,63 @@ class Whereware {
             throw new \Exception (WHEREWARE_STR_TARGET_NOT_FOUND);
             return false;
         }
+        $obj->target_bin = trim ($obj->target_bin);
         $sku = $this->sku ($obj->composite_sku);
         if (!$sku) {
             throw new \Exception (WHEREWARE_STR_SKU_NOT_FOUND);
             return false;
         }
         $moves = [];
-        // Components to assembly/goods-out location composite bin
+        // Many components moved to assembly location / component bin
+        $result = $this->hpapi->dbCall (
+            'wwBookingInsert'
+        );
+        $ids = [];
+        $ids[0] = $result[0]['id'];
         foreach ($obj->picks as $pick) {
             $moves[] = [
                 'order_ref' => $obj->order_ref,
+                'booking_id' => $ids[0],
                 'status' => 'R',
                 'quantity' => $obj->composite_quantity * $pick->quantity,
                 'sku' => $pick->sku,
                 'from_location' => WHEREWARE_LOCATION_COMPONENT,
                 'from_bin' => $pick->bin,
                 'to_location' => WHEREWARE_LOCATION_ASSEMBLY,
-                'to_bin' => $sku->bin
+                'to_bin' => $pick->bin
             ];
         }
-        // Assembled qty x composite to goods-out location, composite bin
-        if (WHEREWARE_ASSEMBLY_AUTO_FULFIL) {
-            $status = 'R';
+        // Human assembly process happens here in the model. Then:
+        // Single composite moved to target location / composite bin
+        if (strlen($obj->target_bin)) {
+            $to_bin = $obj->target_bin;
         }
         else {
-            $status = 'F';
+            $to_bin = $sku->bin;
         }
+        $result = $this->hpapi->dbCall (
+            'wwBookingInsert'
+        );
+        $ids[1] = $result[0]['id'];
         $moves[] = [
             'order_ref' => $obj->order_ref,
-            'status' => $status,
-            'quantity' => $obj->composite_quantity,
-            'sku' => $obj->composite_sku,
-            'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
-            'from_bin' => $sku->bin,
-            'to_location' => WHEREWARE_LOCATION_GOODSOUT,
-            'to_bin' => $sku->bin
-        ];
-        // Goods-out qty x composite to target location
-        $moves[] = [
-            'order_ref' => $obj->order_ref,
+            'booking_id' => $ids[1],
             'status' => 'R',
             'quantity' => $obj->composite_quantity,
             'sku' => $obj->composite_sku,
-            'from_location' => WHEREWARE_LOCATION_GOODSOUT,
-            'from_bin' => $sku->bin,
+            'from_location' => WHEREWARE_LOCATION_ASSEMBLY,
+            'from_bin' => $pick->bin,
             'to_location' => $obj->target_location,
-            'to_bin' => ''
+            'to_bin' => $to_bin
         ];
+        // Now do all the moves
         try {
-            $result = $this->hpapi->dbCall (
-                'wwBookingInsert'
-            );
-            $booking_id = $result[0]['id'];
             foreach ($moves as $m) {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
                     $this->hpapi->email,
                     $m['order_ref'],
-                    $booking_id,
+                    $m['booking_id'],
                     $m['status'],
                     $m['quantity'],
                     $m['sku'],
@@ -270,12 +234,18 @@ class Whereware {
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
             try {
-                if ($booking_id) {
+                if (array_key_exists(0,$ids)) {
                     $this->hpapi->dbCall (
                         'wwBookingCancel',
-                        $booking_id
+                        $ids[0]
                     );
                     $this->hpapi->diagnostic ("booking_id=$booking_id moves are cancelled");
+                }
+                if (array_key_exists(1,$ids)) {
+                    $this->hpapi->dbCall (
+                        'wwBookingCancel',
+                        $ids[1]
+                    );
                 }
             }
             catch (\Exception $e2) {
@@ -285,7 +255,11 @@ class Whereware {
             return false;
         }
         $rtn = new \stdClass ();
-        $rtn->bookingId = $booking_id;
+        $rtn->bookingIds = [];
+        foreach ($ids as $i=>$id) {
+            $rtn->bookingIds[$i] = '#'.$id;
+        }
+        $rtn->bookingIds = implode (', ',$rtn->bookingIds);
         $rtn->moves = $this->hpapi->parse2D ($moves);
         return $rtn;
     }

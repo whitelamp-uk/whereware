@@ -209,6 +209,7 @@ export class Whereware extends Generic {
             composite_quantity: form.quantity.value,
             composite_sku: this.parameters.wherewareSku,
             target_location: form.location.value,
+            target_bin: form.bin.value,
             order_ref: this.parameters.wherewareOrder,
             picks: []
         };
@@ -243,7 +244,7 @@ export class Whereware extends Generic {
         try {
             response = await this.request (request);
             this.data.whereware.moves = response.returnValue.moves;
-            this.parameters.wherewareBookingId = response.returnValue.bookingId;
+            this.parameters.wherewareBookingIds = response.returnValue.bookingIds;
             await this.templateFetch ('booked');
             this.insertRender ('booked',this.qs(this.restricted,'#orders'));
         }
