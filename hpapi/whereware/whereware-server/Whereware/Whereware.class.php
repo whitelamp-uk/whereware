@@ -539,7 +539,7 @@ class Whereware {
                             'P',
                             $sku->quantity,
                             $sku->sku,
-                            WHEREWARE_LOCATION_COMPONENT,
+                            WHEREWARE_LOCATION_ASSEMBLED,
                             $skus_assoc[$sku->sku]->bin,
                             $task->location,
                             ''
