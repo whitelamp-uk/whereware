@@ -68,6 +68,17 @@ export class Whereware extends Generic {
     }
 
     adminerInit ( ) {
+        // Repurposed function (see below)
+        this.data.whereware.settings = this.storageRead ('whereware');
+        if (!this.data.whereware.settings) {
+            this.data.whereware.settings = {
+                whereware_db_name: null,
+                whereware_db_user: null
+            };
+        }
+        return true;
+        // This stuff was the original function that was not called from anywhere
+        /*
         var dbn,dbu,settings;
         settings = this.storageRead ('whereware');
         if (!settings || !settings.whereware_db_name || !settings.whereware_db_user) {
@@ -88,6 +99,7 @@ export class Whereware extends Generic {
             this.storageWrite ('whereware',settings);
             this.data.whereware.settings = settings;
         }
+        */
     }
 
     adminerLink (evt) {
