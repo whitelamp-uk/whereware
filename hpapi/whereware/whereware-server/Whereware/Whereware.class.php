@@ -106,18 +106,21 @@ class Whereware {
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS               = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_LOCATION                     = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
+        $out->constants->WHEREWARE_ADMINER_URL                          = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->value            = WHEREWARE_LOCATION_ASSEMBLED;
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->value        = WHEREWARE_LOCATIONS_DESTINATIONS;
         $out->constants->WHEREWARE_RETURNS_LOCATION->value              = WHEREWARE_RETURNS_LOCATION;
         $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
+        $out->constants->WHEREWARE_ADMINER_URL->value                   = WHEREWARE_ADMINER_URL;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->definition       = 'Assembled composite default location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->definition   = 'Code prefix for identifying destination locations';
         $out->constants->WHEREWARE_RETURNS_LOCATION->definition         = 'Location for accepting returns';
         $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
+        $out->constants->WHEREWARE_ADMINER_URL->definition              = 'Adminer URL';
         return $out;
     }
 
