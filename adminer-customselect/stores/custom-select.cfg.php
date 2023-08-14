@@ -24,6 +24,7 @@ return [
 #table td[id*="notes_shared"],
 #table td[id*="notes_internal"] {
     width: 20em;
+    white-space: normal;
 }
 '
     ]
