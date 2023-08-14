@@ -18,7 +18,15 @@ return [
             'ww_team'               => '&order[0]=team',
             'ww_task'               => '&order[0]=scheduled_date&desc[0]=1&order[1]=team&order[2]=location',
             'ww_variant'            => '&order[0]=generic&order[1]=sku',
-        ]
+        ],
+        'css' => '
+#table th[id~="notes_shared"],
+#table th[id~="notes_internal"],
+#table td[id~="notes_shared"],
+#table td[id~="notes_internal"] {
+    width: calc(50vw - 25em);
+}
+'
     ]
 ];
 
