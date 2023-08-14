@@ -20,9 +20,9 @@ return [
             'ww_variant'            => '&order[0]=generic&order[1]=sku',
         ],
         'css' => '
-#table td[id*="item"],
-#table td[id*="notes_shared"],
-#table td[id*="notes_internal"] {
+#table td[id*="[item]"],
+#table td[id*="[notes_shared]"],
+#table td[id*="[notes_internal]"] {
     width: 20em;
     white-space: normal;
 }
