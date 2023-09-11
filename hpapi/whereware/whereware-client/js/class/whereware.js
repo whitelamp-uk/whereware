@@ -880,7 +880,7 @@ export class Whereware extends Generic {
 
     projectsOptions (projectSelect,csvInput,closeButton) {
         var i,o;
-        for (i=0;this.data.whereware.projects[i];i++) {
+        for (i=(this.data.whereware.projects.length-1);i>=0;i--) {
             o = document.createElement ('option');
             o.value = this.data.whereware.projects[i].project;
             o.innerText = this.data.whereware.projects[i].project + ' ' + this.data.whereware.projects[i].name;
