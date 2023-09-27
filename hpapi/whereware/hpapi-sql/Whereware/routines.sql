@@ -446,6 +446,8 @@ CREATE PROCEDURE `wwSkus`(
  ,IN `includeComponents` int(1) UNSIGNED
  ,IN `includeComposites` int(1) UNSIGNED
  ,IN `rowsLimit` int(11) UNSIGNED
+ ,IN `locationComponent` varchar(64) CHARSET ascii
+ ,IN `locationComposite` varchar(64) CHARSET ascii
 )
 BEGIN
   SELECT
@@ -453,7 +455,7 @@ BEGIN
    ,`s`.`hidden`
    ,`s`.`sku`
    ,`c`.`sku` IS NOT NULL AS `is_composite`
-   ,`s`.`bin`
+   ,`s`.`bin` AS `bin`
    ,`s`.`additional_ref`
    ,`s`.`name`
    ,`s`.`notes`
@@ -464,9 +466,46 @@ BEGIN
    ,`s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `by_additional_ref`
    ,`s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `by_name`
    ,DATE(`s`.`updated`)=REPLACE(TRIM('%' FROM likeString),'%','-') AS `by_updated`
+   ,IF(
+      `c`.`sku` IS NOT NULL
+     ,CONCAT(locationComposite,'/',`s`.`bin`)
+     ,CONCAT(locationComponent,'/',`s`.`bin`)
+    ) AS `location_bin`
+   ,IF(
+      `c`.`sku` IS NOT NULL
+     ,IFNULL(`assemblies`.`in_bins`,0)
+     ,IFNULL(`parts`.`in_bins`,0)
+    ) AS `in_bins`
+   ,IF(
+      `c`.`sku` IS NOT NULL
+     ,IFNULL(`assemblies`.`available`,0)
+     ,IFNULL(`parts`.`available`,0)
+    ) AS `available`
   FROM `ww_sku` AS `s`
   LEFT JOIN `ww_composite` AS `c`
          ON `c`.`sku`=`s`.`sku`
+  LEFT JOIN (
+    SELECT
+      `sku`
+     ,SUM(`in_bin`) AS `in_bins`
+     ,SUM(`available`) AS `available`
+    FROM `ww_recent_inventory`
+    WHERE `location`=locationComponent
+    GROUP BY `sku`
+  )      AS `parts`
+         ON LENGTH(locationComponent)>0
+        AND `parts`.`sku`=`s`.`sku`
+  LEFT JOIN (
+    SELECT
+      `sku`
+     ,SUM(`in_bin`) AS `in_bins`
+     ,SUM(`available`) AS `available`
+    FROM `ww_recent_inventory`
+    WHERE `location`=locationComposite
+    GROUP BY `sku`
+  )      AS `assemblies`
+         ON LENGTH(locationComposite)>0
+        AND `assemblies`.`sku`=`s`.`sku`
   WHERE (
        likeString IS NULL
     OR likeString=''

@@ -922,7 +922,9 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         return false;
     }
 
-    public function skus ($search_terms,$show_components=1,$show_composites=1) {
+    public function skus ($search_terms,$show_components,$show_composites) {
+        $show_components &= true;
+        $show_composites &= true;
         $limit = WHEREWARE_RESULTS_LIMIT;
         $rtn = new \stdClass ();
         $rtn->sql = "CALL `wwSkus`('$search_terms','$show_components','$show_composites','$limit')";
@@ -937,7 +939,9 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     $like,
                     $show_components,
                     $show_composites,
-                    $limit
+                    $limit,
+                    WHEREWARE_LOCATION_COMPONENT,
+                    WHEREWARE_LOCATION_ASSEMBLED
                 );
             }
             catch (\Exception $e) {

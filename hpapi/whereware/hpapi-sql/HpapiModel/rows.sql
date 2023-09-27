@@ -79,6 +79,8 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	1,	'Optional project code',	1,	'varchar-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 1,  'Returns object',  0,  'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus',	1,	'Search terms',	1,	'varchar-3-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'skus', 2,  'Show components', 1,  'db-boolean'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'skus', 3,  'Show composites', 1,  'db-boolean'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'tasks',	1,	'Project code',	1,	'varchar-3-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'team',  1,  'Team code', 0,  'varchar-3-64');
 
@@ -186,6 +188,8 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwSkus',	2,	'Include components',	0,	'db-boolean'),
 ('Whereware',	'wwSkus',	3,	'Include composites',	0,	'db-boolean'),
 ('Whereware',	'wwSkus',	4,	'Results limit',	0,	'int-11-positive'),
+('Whereware', 'wwSkus', 5,  'Component inventory location (optional)',  1,  'varchar-64'),
+('Whereware', 'wwSkus', 6,  'Composite inventory location (optional)',  1,  'varchar-64'),
 ('Whereware', 'wwTask',  1,  'Task ID', 0,  'int-11-positive'),
 ('Whereware', 'wwTaskInsert',  1,  'Project code', 0,  'varchar-64'),
 ('Whereware', 'wwTaskInsert',  2,  'Team code', 0,  'varchar-64'),

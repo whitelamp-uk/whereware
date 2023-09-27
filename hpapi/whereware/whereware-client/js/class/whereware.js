@@ -179,32 +179,6 @@ export class Whereware extends Generic {
         }
     }
 
-    async compositesRequest (searchTerms) {
-        var request,response;
-        request     = {
-            "email" : this.access.email.value
-           ,"method" : {
-                "vendor" : "whereware"
-               ,"package" : "whereware-server"
-               ,"class" : "\\Whereware\\Whereware"
-               ,"method" : "composites"
-               ,"arguments" : [
-                    searchTerms
-                ]
-            }
-        }
-        try {
-            response = await this.request (request);
-            this.data.whereware.sql = response.returnValue.sql;
-            this.data.whereware.composites = response.returnValue.skus;
-            return response.returnValue;
-        }
-        catch (e) {
-            console.log ('compositesRequest(): could not get allowed composites: '+e.message);
-            return false;
-        }
-    }
-
     async move ( ) {
         var bid,err,form,generics,i,move,request,response;
         form = this.qs (this.restricted,'#picklist');
@@ -1200,7 +1174,7 @@ export class Whereware extends Generic {
         section.classList.add ('active');
     }
 
-    skuList (container,response,composite=false) {
+    skuList (container,response,view=false) {
         var count,dt,dtp,i,lk,k,mod,noresults,sm,sku,skus;
         noresults = this.qs (container,'tr.no-results');
         skus = this.qsa (container,'tr.result');
@@ -1238,11 +1212,16 @@ export class Whereware extends Generic {
                 k.classList.add ('sku');
                 k.classList.add ('button');
                 k.textContent = response.skus[i].sku;
-                k.classList.add ('navigator');
-                k.dataset.insert = 'orders';
-                k.dataset.target = 'orders';
+                if (view=='orders') {
+                    k.classList.add ('navigator');
+                    k.dataset.insert = 'orders';
+                    k.dataset.target = 'orders';
+                }
+                // TODO: is this still necessary?
                 k.dataset.parameter = 'wherewareSku';
                 k.dataset.value = response.skus[i].sku;
+                // If we have this
+                k.dataset.sku = response.skus[i].sku;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
@@ -1256,14 +1235,18 @@ export class Whereware extends Generic {
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                if (composite) {
-                    k.title = 'Workflow points to this composite storage bin';
-                }
-                else {
-                    k.title = 'Component recommended bin (irrelevant to stock moves or inventory calculations)';
-                }
-                k.classList.add ('bin');
-                k.textContent = response.skus[i].bin;
+                k.classList.add ('available');
+                k.textContent = response.skus[i].available;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('in_bins');
+                k.textContent = response.skus[i].in_bins;
+                sku.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('location-bin');
+                k.textContent = response.skus[i].location_bin;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
@@ -1286,6 +1269,38 @@ export class Whereware extends Generic {
             noresults.classList.add ('hidden');
         }
         return count;
+    }
+
+    async skusRequest (searchTerms,composites,components) {
+        var request,response;
+        if (!composites && !components) {
+            console.log ('skusRequest(): SKUs searches are for composites, components or both');
+            return false;
+        }
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "skus"
+               ,"arguments" : [
+                    searchTerms,
+                    composites,
+                    components
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.sql = response.returnValue.sql;
+            this.data.whereware.composites = response.returnValue.skus;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('skusRequest(): could not search SKUs: '+e.message);
+            return false;
+        }
     }
 
     tasksFocus (evt) {
