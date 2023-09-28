@@ -1235,13 +1235,13 @@ export class Whereware extends Generic {
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('available');
-                k.textContent = response.skus[i].available;
+                k.classList.add ('in_bins');
+                k.textContent = response.skus[i].in_bins;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('in_bins');
-                k.textContent = response.skus[i].in_bins;
+                k.classList.add ('available');
+                k.textContent = response.skus[i].available;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
@@ -1267,6 +1267,9 @@ export class Whereware extends Generic {
         this.navigatorsListen (container);
         if (count>0) {
             noresults.classList.add ('hidden');
+        }
+        else {
+            noresults.classList.remove ('hidden');
         }
         return count;
     }
@@ -1612,6 +1615,9 @@ export class Whereware extends Generic {
         this.navigatorsListen (this.parameters.wherewareRowsElmt);
         if (count>0) {
             noresults.classList.add ('hidden');
+        }
+        else {
+            noresults.classList.remove ('hidden');
         }
         // SKU headings
         for (i=0;skus[i];i++) {
