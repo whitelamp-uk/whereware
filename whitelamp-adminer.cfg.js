@@ -99,6 +99,9 @@ var whitelampAdminer = {
             ['whereware','ww_variant','id'],
             ['whereware','ww_web','id'],
         ],
+        required : [
+        //  ['db_name','table_name','column_name'],
+        ],
         regexp : {
         //  pattern_name : ['html_pattern','keydown_pattern','Constraint description'],
             code : ['[A-Z0-9\\-]{3,64}','[A-Z0-9\\-]','Codes are at least 3 characters, limited to capital letters, integers and hyphens and must start with a letter'],
