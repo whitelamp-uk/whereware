@@ -653,6 +653,41 @@ export class Whereware extends Generic {
         }
     }
 
+    async projectNewRequest (evt) {
+        var err,form,request,response;
+        form = evt.target;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "projectInsert"
+               ,"arguments" : [
+                    form.project.value,
+                    form.name.value,
+                    form.notes.value
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            return true;
+        }
+        catch (e) {
+            console.log ('projectNewRequest(): '+e.message);
+            err = e.message.split (' ');
+            if (err[1]=='403') {
+                err = 'You do not have permission to execute this process';
+            }
+            else {
+                err = 'Failed to create new project';
+            }
+            throw new Error (err);
+            return false;
+        }
+    }
+
     async projectUpdate (evt) {
         var c,div,e,es,i,moves,msg,obj,rtn,section,sku,skus,sqs,table,task,tasks,tbody,td,tr;
         obj = { project : this.parameters.wherewareProjectSelect.value, skus : [], tasks : [] };

@@ -426,6 +426,24 @@ class Whereware {
         return $picklist;
     }
 
+    public function projectInsert ($project,$name,$notes) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwProjectInsert',
+                $project,
+                $name,
+                $notes
+            );
+            $row_id = $result[0]['id'];
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB_INSERT);
+            return false;
+        }
+        return $row_id;
+    }
+
     public function projectUpdate ($obj) {
 /*
     {

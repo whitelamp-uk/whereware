@@ -6,7 +6,9 @@ SET sql_mode = 'NO_AUTO_VALUE_ON_ZERO';
 
 
 -- BESPOKE PATTERNS
+
 INSERT IGNORE INTO `hpapi_pattern` (`pattern`, `constraints`, `expression`, `input`, `php_filter`, `length_minimum`, `length_maximum`, `value_minimum`, `value_maximum`) VALUES
+
 ('varchar-3-64', 'Between 3 and 64 characters',  '^.*$',     'text', '',     3,      64,     '',     '');
 
 
@@ -55,6 +57,7 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move',	'Book moves',	'Insert moves to raise moves from components to composites'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders',	'Order list',	'Orders for a given SKU'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	'Picklist',	'Picks component options for a composite SKU'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  'Project insert', 'Insert a new project'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	'Project update',	'Project SKU data and tasks'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	'Projects',	'Project list with SKU data'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 'Returns', 'Move and fulfil returned stock to a holding location, raise move back again as new task'),
@@ -75,6 +78,9 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move',	1,	'Picklist object',	0,	'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders',	1,	'Order reference',	0,	'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	1,	'SKU',	0,	'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  1,  'Project code', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  2,  'Project name', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  3,  'Project notes', 0,  'varchar-4096'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	1,	'Project object',	0,	'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	1,	'Optional project code',	1,	'varchar-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 1,  'Returns object',  0,  'object'),
@@ -91,8 +97,10 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `method`) VALUES
 
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'move'),
+('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
+('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'authenticate'),
 ('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'components'),
@@ -137,6 +145,7 @@ INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
 ('Whereware',	'wwMoveInsert',	'Insert a new stock move'),
 ('Whereware',	'wwOrders',	'List orders for a given SKU'),
 ('Whereware',	'wwPick',	'Picklist of generics/components for a given composite SKU'),
+('Whereware', 'wwProjectInsert',  'Insert a project'),
 ('Whereware', 'wwProjectSkuInsert',  'Insert SKU for a project, inserting the SKU and its bin where missing'),
 ('Whereware',	'wwProjects',	'List of projects/associated SKUs'),
 ('Whereware',	'wwSkus',	'List SKUs'),
@@ -178,6 +187,9 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwOrders',	2,	'Destination locations start with',	0,	'varchar-64'),
 ('Whereware',	'wwOrders',	3,	'Results limit',	0,	'int-11-positive'),
 ('Whereware',	'wwPick',	1,	'Composite SKU',	0,	'varchar-64'),
+('Whereware', 'wwProjectInsert',  1,  'Project', 0,  'project-number'),
+('Whereware', 'wwProjectInsert',  2,  'Name', 0,  'varchar-64'),
+('Whereware', 'wwProjectInsert',  3,  'Notes', 1,  'varchar-4096'),
 ('Whereware', 'wwProjectSkuInsert',  1,  'Project code', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  2,  'SKU', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  3,  'Bin code', 1,  'varchar-64'),
@@ -218,20 +230,21 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
 ('Whereware',	'wwLocations',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
-('Whereware',	'wwOrders',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'orders'),
 ('Whereware', 'wwMoveAssign', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwMoveAssign', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware',	'wwMoveInsert',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
 ('Whereware', 'wwMoveInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwMoveInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
+('Whereware', 'wwOrders', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'orders'),
 ('Whereware',	'wwPick',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
-('Whereware',	'wwStatuses',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
+('Whereware', 'wwProjectInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
+('Whereware', 'wwProjectSkuInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
+('Whereware', 'wwProjects', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projects'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
-('Whereware', 'wwProjectSkuInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
-('Whereware',	'wwProjects',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'skus'),
+('Whereware', 'wwStatuses', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'config'),
 ('Whereware', 'wwTask', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware', 'wwTaskInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwTaskInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),

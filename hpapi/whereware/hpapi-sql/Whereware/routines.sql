@@ -117,9 +117,9 @@ BEGIN
     GROUP BY `sku`,`from_bin`
   ;
   -- Inputs
-  DROP TABLE IF EXISTS `inv_in_tmp`
+  DROP TEMPORARY TABLE IF EXISTS `inv_in_tmp`
   ;
-  CREATE TABLE `inv_in_tmp` AS
+  CREATE TEMPORARY TABLE `inv_in_tmp` AS
     SELECT
       `sku`
      ,`to_bin` AS `bin`
@@ -152,12 +152,12 @@ BEGIN
    ,`i`.`in_bin`=`t`.`fulfilled`
    ,`i`.`available`=`t`.`fulfilled`
   ;
-  DROP TABLE `inv_in_tmp`
+  DROP TEMPORARY TABLE `inv_in_tmp`
   ;
   -- Outputs
-  DROP TABLE IF EXISTS `inv_out_tmp`
+  DROP TEMPORARY TABLE IF EXISTS `inv_out_tmp`
   ;
-  CREATE TABLE `inv_out_tmp` AS
+  CREATE TEMPORARY TABLE `inv_out_tmp` AS
     SELECT
       `sku`
      ,`from_bin` AS `bin`
@@ -187,7 +187,7 @@ BEGIN
    ,`i`.`in_bin`=`i`.`in_bin`-`t`.`moved_on`+`t`.`spoken_for`
    ,`i`.`available`=`i`.`available`-`t`.`moved_on`
   ;
-  DROP TABLE `inv_out_tmp`
+  DROP TEMPORARY TABLE `inv_out_tmp`
   ;
   UPDATE `ww_sku` AS `s`
   JOIN `ww_recent_inventory` AS `i`
@@ -357,6 +357,26 @@ BEGIN
   WHERE `g`.`sku`=CompositeSKU
   GROUP BY `g`.`generic`
   ORDER BY `g`.`generic`
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwProjectInsert`$$
+CREATE PROCEDURE `wwProjectInsert`(
+   IN `projectCode` char(64)
+  ,IN `projectName` char(64)
+  ,IN `projectNotes` text
+)
+BEGIN
+  INSERT INTO `ww_project`
+  SET
+    `updated`=NOW()
+   ,`project`=projectCode
+   ,`name`=projectName
+   ,`notes`=projectNotes
+  ;
+  SELECT LAST_INSERT_ID() AS `id`
   ;
 END$$
 
