@@ -63,7 +63,7 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwInventory`$$
 CREATE PROCEDURE `wwInventory`(
-  IN `Location` char(64) CHARSET ascii
+  IN `inventoryLocation` char(64) CHARSET ascii
  ,IN `Sku_starts_with_or_empty_for_all` char(64) CHARSET ascii
 )
 BEGIN
@@ -78,9 +78,12 @@ BEGIN
    ,`raised`=0
    ,`in_bin`=0
    ,`available`=0
-  WHERE Sku_starts_with_or_empty_for_all IS NULL
+  WHERE `location`=inventoryLocation
+    AND (
+        Sku_starts_with_or_empty_for_all IS NULL
      OR Sku_starts_with_or_empty_for_all=''
      OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
+  )
   ;
   -- Inputs
   INSERT IGNORE INTO `ww_recent_inventory`
@@ -91,7 +94,7 @@ BEGIN
      ,`to_bin`
     FROM `ww_move`
     WHERE `cancelled`=0
-      AND `to_location`=Location
+      AND `to_location`=inventoryLocation
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
         OR Sku_starts_with_or_empty_for_all=''
@@ -108,7 +111,7 @@ BEGIN
      ,`from_bin`
     FROM `ww_move`
     WHERE `cancelled`=0
-      AND `from_location`=Location
+      AND `from_location`=inventoryLocation
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
         OR Sku_starts_with_or_empty_for_all=''
@@ -130,7 +133,7 @@ BEGIN
     FROM `ww_move`
     WHERE `cancelled`=0
       AND `status` IN ('R','T','F')
-      AND `to_location`=Location
+      AND `to_location`=inventoryLocation
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
         OR Sku_starts_with_or_empty_for_all=''
@@ -141,7 +144,7 @@ BEGIN
   UPDATE `inv_in_tmp` AS `t`
   JOIN `ww_recent_inventory` AS `i`
     ON `i`.`sku`=`t`.`sku`
-   AND `i`.`location`=Location
+   AND `i`.`location`=inventoryLocation
    AND `i`.`bin`=`t`.`bin`
   SET
     `i`.`refreshed`=@stamp
@@ -167,7 +170,7 @@ BEGIN
     FROM `ww_move`
     WHERE `cancelled`=0
       AND `status` IN ('R','T','F')
-      AND `from_location`=Location
+      AND `from_location`=inventoryLocation
       AND (
            Sku_starts_with_or_empty_for_all IS NULL
         OR Sku_starts_with_or_empty_for_all=''
@@ -178,7 +181,7 @@ BEGIN
   UPDATE `inv_out_tmp` AS `t`
   JOIN `ww_recent_inventory` AS `i`
     ON `i`.`sku`=`t`.`sku`
-   AND `i`.`location`=Location
+   AND `i`.`location`=inventoryLocation
    AND `i`.`bin`=`t`.`bin`
   SET
     `i`.`refreshed`=@stamp
@@ -191,7 +194,8 @@ BEGIN
   ;
   UPDATE `ww_sku` AS `s`
   JOIN `ww_recent_inventory` AS `i`
-    ON `i`.`sku`=`s`.`sku`
+    ON `i`.`location`=inventoryLocation
+   AND `i`.`sku`=`s`.`sku`
   SET
     `i`.`sku_additional_ref`=`s`.`additional_ref`
    ,`i`.`sku_name`=`s`.`name`
@@ -200,7 +204,8 @@ BEGIN
     *
   FROM `ww_recent_inventory`
   WHERE `refreshed`=@stamp
-  ORDER BY `sku`,`location`,`bin`
+    AND `location`=inventoryLocation
+  ORDER BY `sku`,`bin`
   ;
 END$$
 
