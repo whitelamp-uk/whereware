@@ -1329,16 +1329,10 @@ export class Whereware extends Generic {
                 ]
             }
         }
-        try {
-            response = await this.request (request);
-            this.data.whereware.sql = response.returnValue.sql;
-            this.data.whereware.composites = response.returnValue.skus;
-            return response.returnValue;
-        }
-        catch (e) {
-            console.log ('skusRequest(): could not search SKUs: '+e.message);
-            return false;
-        }
+        response = await this.request (request);
+        this.data.whereware.sql = response.returnValue.sql;
+        this.data.whereware.composites = response.returnValue.skus;
+        return response.returnValue;
     }
 
     tasksFocus (evt) {

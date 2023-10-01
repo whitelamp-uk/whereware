@@ -107,6 +107,7 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_LOCATION                     = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_ADMINER_URL                          = new \stdClass ();
+        $out->constants->WHEREWARE_RESULTS_LIMIT                        = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->value            = WHEREWARE_LOCATION_ASSEMBLED;
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
@@ -114,6 +115,7 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_LOCATION->value              = WHEREWARE_RETURNS_LOCATION;
         $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
         $out->constants->WHEREWARE_ADMINER_URL->value                   = WHEREWARE_ADMINER_URL;
+        $out->constants->WHEREWARE_RESULTS_LIMIT->value                 = WHEREWARE_RESULTS_LIMIT;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->definition       = 'Assembled composite default location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
@@ -121,6 +123,7 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_LOCATION->definition         = 'Location for accepting returns';
         $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         $out->constants->WHEREWARE_ADMINER_URL->definition              = 'Adminer URL';
+        $out->constants->WHEREWARE_RESULTS_LIMIT->definition            = 'Maximum number of search results';
         return $out;
     }
 
@@ -943,14 +946,14 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
     public function skus ($search_terms,$show_components,$show_composites) {
         $show_components &= true;
         $show_composites &= true;
-        $limit = WHEREWARE_RESULTS_LIMIT;
+        $max = WHEREWARE_RESULTS_LIMIT;
+        $limit = $max + 1;
         $rtn = new \stdClass ();
         $rtn->sql = "CALL `wwSkus`('$search_terms','$show_components','$show_composites','$limit')";
         $rtn->skus = [];
         $like = $this->searchLike ($search_terms);
         if ($like) {
             $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$limit);";
-            $limit++;
             try {
                 $result = $this->hpapi->dbCall (
                     'wwSkus',
@@ -967,11 +970,14 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                 throw new \Exception (WHEREWARE_STR_DB);
                 return false;
             }
-            if (count($result)>WHEREWARE_RESULTS_LIMIT) {
-                $this->hpapi->warn (WHEREWARE_STR_RESULTS_LIMIT);
-                array_pop ($result);
+            if (count($result)>$max) {
+                // Strictly limit generosity
+                throw new \Exception (WHEREWARE_STR_RESULTS_LIMIT);
+                return false;
             }
-            $rtn->skus = $this->hpapi->parse2D ($result);
+            else {
+                $rtn->skus = $this->hpapi->parse2D ($result);
+            }
         }
         return $rtn;
     }

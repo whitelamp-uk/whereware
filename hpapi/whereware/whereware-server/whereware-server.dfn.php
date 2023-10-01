@@ -16,7 +16,7 @@ define ( 'WHEREWARE_STR_QTY_INVALID',           '610 400 Quantity is not valid' 
 // 611 must be stable because it is used by Whereware JS returnsRequest():
 define ( 'WHEREWARE_STR_QTY_INSUFFICIENT',      '611 400 Low stock'                         );
 define ( 'WHEREWARE_STR_PROJECT',               '612 400 Failed to identify project'        );
-define ( 'WHEREWARE_STR_RESULTS_LIMIT',         'Warning - too many results to show all'    );
+define ( 'WHEREWARE_STR_RESULTS_LIMIT',         '613 400 Too many results'                  );
 define ( 'WHEREWARE_STR_PASSWORD_DICTIONARY',   'Contains common words, names or patterns'  );
 define ( 'WHEREWARE_STR_PASSWORD_CHARACTERS',   'Not enough different characters'           );
 define ( 'WHEREWARE_STR_PASSWORD_OTHER',        'Too easy to crack'                         );
