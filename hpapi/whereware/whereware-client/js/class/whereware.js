@@ -653,7 +653,7 @@ export class Whereware extends Generic {
         }
     }
 
-    async projectNewRequest (evt) {
+    async projectNewRequest (evt,failMessage=false) {
         var err,form,request,response;
         form = evt.target;
         request     = {
@@ -681,7 +681,12 @@ export class Whereware extends Generic {
                 err = 'You do not have permission to execute this process';
             }
             else {
-                err = 'Failed to create new project';
+                if (failMessage) {
+                    err = failMessage;
+                }
+                else {
+                    err = 'Failed to create new project';
+                }
             }
             throw new Error (err);
             return false;
