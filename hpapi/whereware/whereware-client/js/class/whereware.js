@@ -147,6 +147,31 @@ export class Whereware extends Generic {
         }
     }
 
+    async blueprintRequest (sku) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Blueprint"
+               ,"method" : "blueprint"
+               ,"arguments" : [
+                    sku
+               ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            this.data.whereware.generics = response.returnValue;
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log ('blueprintRequest(): could not get blueprint for "'+sku+'": '+e.message);
+            return false;
+        }
+    }
+
     constructor (config) {
         super (config);
         this.data.whereware = {};
@@ -367,42 +392,6 @@ export class Whereware extends Generic {
         }
         catch (e) {
             console.log ('ordersRequest(): could not get orders for "'+this.parameters.wherewareSku+'": '+e.message);
-            return false;
-        }
-    }
-
-    async picklistRequest (sku) {
-        var request,response;
-        request     = {
-            "email" : this.access.email.value
-           ,"method" : {
-                "vendor" : "whereware"
-               ,"package" : "whereware-server"
-               ,"class" : "\\Whereware\\Whereware"
-               ,"method" : "picklist"
-               ,"arguments" : [
-                    sku
-               ]
-            }
-        }
-        try {
-            response = await this.request (request);
-            this.data.whereware.generics = response.returnValue;
-            return response.returnValue;
-        }
-        catch (e) {
-            console.log ('picklistRequest(): could not get pick list for "'+sku+'": '+e.message);
-            return false;
-        }
-    }
-
-    async picklistRequestPickNBook ( ) {
-        var rtn;
-        try {
-            rtn = await this.picklistRequest (this.parameters.wherewareSku);
-            return rtn;
-        }
-        catch (e) {
             return false;
         }
     }

@@ -18,6 +18,31 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwBlueprint`$$
+CREATE PROCEDURE `wwBlueprint`(
+  IN `CompositeSKU` char(64) CHARSET ascii
+)
+BEGIN
+  SELECT
+    `g`.`quantity`
+   ,`g`.`generic`
+   ,`g`.`name`
+   ,GROUP_CONCAT(
+      CONCAT(`s`.`sku`,':',`s`.`name`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
+    ) AS `options_preferred_first`
+  FROM `ww_generic` AS `g`
+  JOIN `ww_variant` AS `v`
+    ON `v`.`generic`=`g`.`generic`
+  JOIN `ww_sku` AS `s`
+    ON `s`.`sku`=`v`.`sku`
+  WHERE `g`.`sku`=CompositeSKU
+  GROUP BY `g`.`generic`
+  ORDER BY `g`.`generic`
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwBooking`$$
 CREATE PROCEDURE `wwBooking`(
   IN `bookingId` int(11) UNSIGNED
@@ -337,31 +362,6 @@ BEGIN
   GROUP BY `order_ref`
   ORDER BY `order_updated` DESC
   LIMIT 0,rowsLimit
-  ;
-END$$
-
-
-DELIMITER $$
-DROP PROCEDURE IF EXISTS `wwPick`$$
-CREATE PROCEDURE `wwPick`(
-  IN `CompositeSKU` char(64) CHARSET ascii
-)
-BEGIN
-  SELECT
-    `g`.`quantity`
-   ,`g`.`generic`
-   ,`g`.`name`
-   ,GROUP_CONCAT(
-      CONCAT(`s`.`sku`,':',`s`.`name`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
-    ) AS `options_preferred_first`
-  FROM `ww_generic` AS `g`
-  JOIN `ww_variant` AS `v`
-    ON `v`.`generic`=`g`.`generic`
-  JOIN `ww_sku` AS `s`
-    ON `s`.`sku`=`v`.`sku`
-  WHERE `g`.`sku`=CompositeSKU
-  GROUP BY `g`.`generic`
-  ORDER BY `g`.`generic`
   ;
 END$$
 

@@ -377,58 +377,6 @@ class Whereware {
         return $number;
     }
 
-    public function picklist ($sku) {
-        $picklist = [];
-        try {
-            $result = $this->hpapi->dbCall (
-                'wwPick',
-                $sku
-            );
-            $result = $this->hpapi->parse2D ($result);
-        }
-        catch (\Exception $e) {
-            $this->hpapi->diagnostic ($e->getMessage());
-            throw new \Exception (WHEREWARE_STR_DB);
-            return false;
-        }
-        $picklist = [];
-        foreach ($result as $item) {
-            $item->options = explode (',',$item->options_preferred_first);
-            unset ($item->options_preferred_first);
-            $item->components = [];
-            foreach ($item->options as $o) {
-                $c = new \stdClass ();
-                $o = explode (':',$o);
-                $c->sku = $o[0];
-                $c->name = $o[1];
-                try {
-                    $rows = $this->hpapi->dbCall (
-                        'wwInventory',
-                        WHEREWARE_LOCATION_COMPONENT,
-                        $c->sku
-                    );
-                    $stock = [];
-                    foreach ($rows as $row) {
-                        if ($row['sku']==$c->sku) {
-                            $stock[] = $row;
-                        }
-                    }
-                    $stock = $this->hpapi->parse2D ($stock);
-                }
-                catch (\Exception $e) {
-                    $this->hpapi->diagnostic ($e->getMessage());
-                    throw new \Exception (WHEREWARE_STR_DB);
-                    return false;
-                }
-                $c->stock = $stock;
-
-                $item->components[] = $c;
-            }
-            $picklist[] = $item;
-        }
-        return $picklist;
-    }
-
     public function projectInsert ($project,$name,$notes) {
         try {
             $result = $this->hpapi->dbCall (

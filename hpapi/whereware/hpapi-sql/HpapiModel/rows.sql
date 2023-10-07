@@ -48,6 +48,7 @@ INSERT IGNORE INTO `hpapi_package` (`vendor`, `package`, `requires_key`, `notes`
 
 INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `label`, `notes`) VALUES
 
+('whereware', 'whereware-server', '\\Whereware\\Blueprint', 'blueprint', 'Blueprint', 'Get blueprint definition'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate',	'Basic current user details',	'Dummy method to authenticate'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'book',	'Book out stock for assembly/shipping',	'Move quantities of components from bins found to composite bins'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components',	'Component SKUs',	'Component SKUs filtered by search terms'),
@@ -72,7 +73,8 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 
 INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `argument`, `name`, `empty_allowed`, `pattern`) VALUES
 
-('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components',	1,	'Search terms',	1,	'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Blueprint', 'blueprint', 1,  'Composite SKU', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'components', 1,  'Search terms', 1,  'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites',	1,	'Search terms',	1,	'varchar-3-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory',	1,	'Location code',	0,	'varchar-3-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move',	1,	'Picklist object',	0,	'object'),
@@ -102,6 +104,7 @@ INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `meth
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
+('staff', 'whereware',  'whereware-server', '\\Whereware\\Blueprint', 'blueprint'),
 ('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'authenticate'),
 ('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'components'),
 ('staff', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'composites'),
@@ -135,6 +138,7 @@ INSERT IGNORE INTO `hpapi_model` (`model`, `notes`) VALUES
 INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
 
 ('Whereware',	'wwBins',	'Bins'),
+('Whereware', 'wwBlueprint', 'For a given composite SKU, list generic/quantities with their variant SKUs'),
 ('Whereware', 'wwBooking',  'List a booked group of stock moves'),
 ('Whereware',	'wwBookingCancel',	'Cancel a booked group of stock moves'),
 ('Whereware',	'wwBookingInsert',	'Insert a unique booking ID for a group of stock moves'),
@@ -163,6 +167,7 @@ INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
 INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_allowed`, `pattern`) VALUES
 
 ('Whereware',	'wwBins',	1,	'Bin code starts with',	0,	'varchar-64'),
+('Whereware', 'wwBlueprint', 1,  'Composite SKU',  0,  'varchar-64'),
 ('Whereware', 'wwBooking',  1,  'Booking ID', 0,  'int-11-positive'),
 ('Whereware',	'wwBookingCancel',	1,	'Booking ID',	0,	'int-11-positive'),
 ('Whereware',	'wwInventory',	1,	'Location code',	0,	'varchar-64'),
@@ -220,6 +225,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `method`) VALUES
 
 ('HpapiModel',	'hpapiUUIDGenerate',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'book'),
+('Whereware', 'wwBlueprint', 'whereware',  'whereware-server', '\\Whereware\\Blueprint', 'blueprint'),
 ('Whereware', 'wwBooking',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwBooking', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware',	'wwBookingCancel',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'move'),
@@ -227,6 +233,7 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware',	'wwBookingInsert',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate'),
 ('Whereware', 'wwBookingInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware',	'wwBins',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
+('Whereware', 'wwInventory',  'whereware',  'whereware-server', '\\Whereware\\Blueprint', 'blueprint'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
 ('Whereware',	'wwLocations',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
@@ -236,7 +243,6 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware', 'wwMoveInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwMoveInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware', 'wwOrders', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'orders'),
-('Whereware',	'wwPick',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
 ('Whereware', 'wwProjectInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('Whereware', 'wwProjectSkuInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('Whereware', 'wwProjects', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projects'),
