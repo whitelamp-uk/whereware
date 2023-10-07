@@ -262,7 +262,7 @@ export class Whereware extends Generic {
     }
 
     navigatorsSelector ( ) {
-        return 'a.navigator,button.navigator,.nugget.navigator,td.navigator';
+        return 'a.navigator,button.navigator,.nugget.navigator,td.navigator,.results tr.navigator';
     }
 
     orderList (container,rows) {
@@ -1214,7 +1214,7 @@ export class Whereware extends Generic {
         section.classList.add ('active');
     }
 
-    skuList (container,response,view=false) {
+    skuList (container,response) {
         var count,dt,dtp,i,lk,k,mod,noresults,sm,sku,skus;
         noresults = this.qs (container,'tr.no-results');
         skus = this.qsa (container,'tr.result');
@@ -1251,17 +1251,8 @@ export class Whereware extends Generic {
                 k = document.createElement ('td');
                 k.classList.add ('sku');
                 k.classList.add ('button');
+                k.dataset.sku = response.skus[i].sku
                 k.textContent = response.skus[i].sku;
-                if (view=='orders') {
-                    k.classList.add ('navigator');
-                    k.dataset.insert = 'orders';
-                    k.dataset.target = 'orders';
-                }
-                // TODO: is this still necessary?
-                k.dataset.parameter = 'wherewareSku';
-                k.dataset.value = response.skus[i].sku;
-                // If we have this
-                k.dataset.sku = response.skus[i].sku;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
@@ -1304,7 +1295,6 @@ export class Whereware extends Generic {
                 container.appendChild (sku);
             }
         }
-        this.navigatorsListen (container);
         if (count>0) {
             noresults.classList.add ('hidden');
         }
