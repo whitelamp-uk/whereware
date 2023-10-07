@@ -206,7 +206,7 @@ export class Whereware extends Generic {
 
     async move ( ) {
         var bid,err,form,generics,i,move,request,response;
-        form = this.qs (this.restricted,'#picklist');
+        form = this.qs (this.restricted,'#blueprint');
         if (form.quantity.value<1) {
             this.statusShow ('Quantity at least 1 must be entered');
             return;

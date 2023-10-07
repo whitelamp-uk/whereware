@@ -891,7 +891,7 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         return false;
     }
 
-    public function skus ($search_terms,$show_components,$show_composites) {
+    public function skus ($search_terms,$show_components=true,$show_composites=true) {
         $show_components &= true;
         $show_composites &= true;
         $max = WHEREWARE_RESULTS_LIMIT;
