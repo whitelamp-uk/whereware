@@ -82,7 +82,7 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist',	1,	'SKU',	0,	'varchar-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  1,  'Project code', 0,  'varchar-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  2,  'Project name', 0,  'varchar-64'),
-('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  3,  'Project notes', 0,  'varchar-4096'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'projectInsert',  3,  'Project notes', 1,  'varchar-4096'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projectUpdate',	1,	'Project object',	0,	'object'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'projects',	1,	'Optional project code',	1,	'varchar-64'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'returns', 1,  'Returns object',  0,  'object'),
