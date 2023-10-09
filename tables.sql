@@ -19,8 +19,20 @@ CREATE TABLE IF NOT EXISTS `ww_booking` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `project` char(64) CHARACTER SET ascii ,
+  `booker` varchar(255) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `so_po` char(64) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `type` char(64) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `shipment_details` char(64) CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `export` tinyint(1) unsigned NOT NULL DEFAULT 0,
+  `eta` date DEFAULT NULL,
+  `prefer_by` date DEFAULT NULL,
+  `pick_scheduled` date DEFAULT NULL,
+  `pick_by` date DEFAULT NULL,
+  `deliver_by` date DEFAULT NULL,
   `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT `ww_booking_project` FOREIGN KEY (`project`) REFERENCES `ww_project` (`project`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
