@@ -74,11 +74,35 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwBookingInsert`$$
 CREATE PROCEDURE `wwBookingInsert`(
+  IN `bookBooker` char(255) CHARSET ascii
+ ,IN `bookProject` char(64) CHARSET ascii
+ ,IN `bookOrderRef` char(64) CHARSET ascii
+ ,IN `bookType` char(64) CHARSET ascii
+ ,IN `bookExport` tinyint(1) unsigned
+ ,IN `bookShipmentDetails` text CHARSET utf8
+ ,IN `bookDeliverBy` date
+ ,IN `bookETA` date
+ ,IN `bookPickScheduled` date
+ ,IN `bookPickBy` date
+ ,IN `bookPreferBy` date
+ ,IN `bookNotes` text CHARSET utf8
 )
 BEGIN
   INSERT INTO `ww_booking`
   SET
-    `notes`=''
+    `updated`= NOW()
+   ,`project`=bookProject
+   ,`booker`=bookBooker
+   ,`order_ref`=bookOrderRef
+   ,`type`=bookType
+   ,`shipment_details`=bookShipmentDetails
+   ,`export`=bookExport
+   ,`eta`=bookEta
+   ,`prefer_by`=bookPreferBy
+   ,`pick_scheduled`=bookPickScheduled
+   ,`pick_by`=bookPickBy
+   ,`deliver_by`=bookDeliverBy
+   ,`notes`=bookNotes
   ;
   SELECT LAST_INSERT_ID() AS `id`
   ;
@@ -227,10 +251,15 @@ BEGIN
   ;
   SELECT
     *
+   ,`sku`=Sku_starts_with_or_empty_for_all as `matches`
   FROM `ww_recent_inventory`
-  WHERE `refreshed`=@stamp
-    AND `location`=inventoryLocation
-  ORDER BY `sku`,`bin`
+  WHERE `location`=inventoryLocation
+    AND (
+        Sku_starts_with_or_empty_for_all IS NULL
+     OR Sku_starts_with_or_empty_for_all=''
+     OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
+  )
+  ORDER BY `matches` DESC,`sku`,`available` DESC
   ;
 END$$
 
@@ -249,6 +278,37 @@ BEGIN
     OR startsWith=''
     OR `location` LIKE CONCAT(startsWith,'%')
   )
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwLocationInsertMissing`$$
+CREATE PROCEDURE `wwLocationInsertMissing`(
+   IN `locationCode` char(64)
+  ,IN `locationName` char(64)
+  ,IN `locationNotes` text
+)
+BEGIN
+  SET @id = (
+    SELECT `id` FROM `ww_location` WHERE `location`=locationCode
+  )
+  ;
+  IF @id>0  THEN
+    SELECT
+      @id AS `id`
+    ;
+  ELSE
+    INSERT INTO `ww_location`
+    SET
+      `updated`=NOW()
+     ,`location`=locationCode
+     ,`name`=locationName
+     ,`notes`=locationNotes
+    ;
+    SELECT LAST_INSERT_ID() AS `id`
+    ;
+  END IF
   ;
 END$$
 
@@ -533,6 +593,7 @@ BEGIN
    ,`s`.`unit_price`
    ,`s`.`name`
    ,`s`.`notes`
+   ,`m`.`sku` IS NOT NULL AS `moved`
    ,`s`.`sku`=likeString AS `matches_exactly`
    ,`s`.`sku` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_sku_left`
    ,`s`.`additional_ref` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref_left`
@@ -582,6 +643,14 @@ BEGIN
   )      AS `assemblies`
          ON LENGTH(locationComposite)>0
         AND `assemblies`.`sku`=`s`.`sku`
+  LEFT JOIN (
+    SELECT
+      DISTINCT `sku` AS `sku`
+    FROM `ww_move`
+    WHERE `cancelled`=0
+      AND `status` IN ('R','T','F')
+  )      AS `m`
+         ON `m`.`sku`=`s`.`sku`
   WHERE (
        likeString IS NULL
     OR likeString=''

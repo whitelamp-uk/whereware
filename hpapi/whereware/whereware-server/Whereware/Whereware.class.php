@@ -24,34 +24,186 @@ class Whereware {
         // The framework does the actual authentication every request
         // This method is for client app authentication of a browser session
         // The standard base class hpapi.js expects to receive user details
-        // having the property templates (for Handlebars)
-        $result = $this->hpapi->dbCall (
-            'wwUsers',
-            $this->hpapi->email
-        );
-        if ($result) {
-            $user = $this->hpapi->parse2D ($result) [0];
-            $user->templates = $this->templates ();
-            $user->adminerUrl = WHEREWARE_ADMINER_URL;
-            return $user;
-        }
-        throw new \Exception ('Authentication failure');
-        return false;
+        return $this->user ();
     }
 
-    public function book ($order_ref,$composite,$picks) {
+    public function book ($booking) {
+        /*
+        Example $booking:
+        {
+            project              : "1234567",
+            order_ref            : "ABCD"
+            type                 : "incoming",
+            export               : true,
+            shipment_details     : "4 boxes",
+            deliver_by           : "2023-05-26",
+            eta                  : null,
+            pick_by              : null,
+            prefer_by            : null,
+            notes                : "The Co\nThe commercial estate\nSome other info",
+            items: [
+                {
+                    quantity     : 4,
+                    sku  : "NEW-MARK-00000000010",
+                },
+                ...
+            ],
+            select_from_bin      : false
+        }
+        */
+        // Missing null fields
+        foreach (['project','deliver_by','eta','pick_scheduled','pick_by','prefer_by'] as $p) {
+            if (!property_exists($booking,$p) || !$booking->$p) {
+                $booking->$p = null;
+            }
+        }
+        // Missing empty fields
+        foreach (['booker','order_ref','type','shipment_details','location_name','location_address','notes'] as $p) {
+            if (!property_exists($booking,$p)) {
+                $booking->$p = '';
+            }
+        }
+        // Missing boolean fields
+        foreach (['export'] as $p) {
+            if (!property_exists($booking,$p)) {
+                $booking->$p = 0;
+            }
+            $booking->$p &= true;
+            $booking->$p *= 1;
+        }
+        foreach ($booking->items as $item) {
+            foreach (['quantity','sku'] as $p) {
+                if (!property_exists($item,$p)) {
+                    $item->$p = '';
+                }
+            }
+            $item->quantity = intval ($item->quantity);
+        }
+        $locations = [
+            'incoming' => [
+                'from' => '',
+                'via' => WHEREWARE_LOCATION_IN,
+                'to' => WHEREWARE_LOCATION_COMPONENT
+            ],
+            'internal' => [
+                'from' => WHEREWARE_LOCATION_COMPONENT,
+                'via' => WHEREWARE_LOCATION_COMPONENT,
+            ],
+            'outgoing' => [
+                'from' => WHEREWARE_LOCATION_COMPONENT,
+                'via' => WHEREWARE_LOCATION_OUT,
+                'to' => WHEREWARE_LOCATIONS_DESTINATIONS.$booking->project
+            ]
+        ];
+        $items = "";
         try {
             $result = $this->hpapi->dbCall (
-                'wwBookingInsert'
+                'wwLocationInsertMissing',
+                WHEREWARE_LOCATIONS_DESTINATIONS.$booking->project,
+                'Location for project '.$booking->project,
+                $booking->location_name."\n".$booking->location_address,
             );
-            $booking_id = $result[0]['id'];
         }
         catch (\Exception $e) {
             $this->hpapi->diagnostic ($e->getMessage());
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
-        return $booking_ref;
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwBookingInsert',
+                $this->user()->user,
+                $booking->project,
+                $booking->order_ref,
+                $booking->type,
+                $booking->export,
+                $booking->shipment_details,
+                $booking->deliver_by,
+                $booking->eta,
+                $booking->pick_scheduled,
+                $booking->pick_by,
+                $booking->prefer_by,
+                $booking->notes
+            );
+            $booking->id = $result[0]['id'];
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
+        foreach ($booking->items as $item) {
+            try {
+                $bin_from = '';
+                if ($booking->select_from_bin) {
+                    // Get bin with most available stock
+                    $result = $this->hpapi->dbCall (
+                        'wwInventory',
+                        $locations[$booking->type]['from'],
+                        $item->sku
+                    );
+                    if (count($result)) {
+                        // wwInventory() uses a LIKE search
+                        // Perfect matches first, most available bin first
+                        if ($result[0]['sku']==$item->sku) {
+                            $bin_from = $result[0]['bin'];
+                        }
+                    }
+                }
+                $result = $this->hpapi->dbCall (
+                    'wwMoveInsert',
+                    $this->user()->user,
+                    $booking->order_ref,
+                    $booking->id,
+                    'R',
+                    $item->quantity,
+                    $item->sku,
+                    $locations[$booking->type]['from'],
+                    $bin_from,
+                    $locations[$booking->type]['via'],
+                    ''
+                );
+                $item->move1_id = $result[0]['id'];
+                if (array_key_exists('to',$locations[$booking->type])) {
+                    if ($booking->select_from_bin) {
+                        // Get bin with most available stock
+                        $result = $this->hpapi->dbCall (
+                            'wwInventory',
+                            $locations[$booking->type]['via'],
+                            $item->sku
+                        );
+                        if (count($result)) {
+                            // wwInventory() uses a LIKE search
+                            // Perfect matches first, most available bin first
+                            if ($result[0]['sku']==$item->sku) {
+                                $bin_from = $result[0]['bin'];
+                            }
+                        }
+                    }
+                    $result = $this->hpapi->dbCall (
+                        'wwMoveInsert',
+                        $this->user()->user,
+                        $booking->order_ref,
+                        $booking->id,
+                        'R',
+                        $item->quantity,
+                        $item->sku,
+                        $locations[$booking->type]['via'],
+                        $bin_from,
+                        $locations[$booking->type]['to'],
+                        ''
+                    );
+                    $item->move2_id = $result[0]['id'];
+                }
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+        }
+        return $booking->id;
     }
 
     public function components ($search_terms) {
@@ -108,6 +260,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_ADMINER_URL                          = new \stdClass ();
         $out->constants->WHEREWARE_RESULTS_LIMIT                        = new \stdClass ();
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE                   = new \stdClass ();
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->value            = WHEREWARE_LOCATION_ASSEMBLED;
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
@@ -116,6 +270,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
         $out->constants->WHEREWARE_ADMINER_URL->value                   = WHEREWARE_ADMINER_URL;
         $out->constants->WHEREWARE_RESULTS_LIMIT->value                 = WHEREWARE_RESULTS_LIMIT;
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->value            = WHEREWARE_SKU_TEMP_NAMESPACE;
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH->value            = WHEREWARE_SKU_TEMP_ID_LENGTH;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->definition       = 'Assembled composite default location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
@@ -124,6 +280,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         $out->constants->WHEREWARE_ADMINER_URL->definition              = 'Adminer URL';
         $out->constants->WHEREWARE_RESULTS_LIMIT->definition            = 'Maximum number of search results';
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->definition       = 'Prefix to search for a new user-space SKU';
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH->definition       = 'Length of user-space SKU ID';
         return $out;
     }
 
@@ -891,6 +1049,41 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         return false;
     }
 
+    public function skuUserUpdate ($sku,$description) {
+        $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
+        if (stripos($sku,$sku_group.'-')===0) {
+            try {
+                $error = WHEREWARE_STR_DB;
+                $result = $this->hpapi->dbCall (
+                    'wwSkus',
+                    $sku,
+                    1,
+                    1,
+                    1,
+                    WHEREWARE_LOCATION_COMPONENT,
+                    WHEREWARE_LOCATION_ASSEMBLED
+                );
+                $old = $result[0];
+                $error = WHEREWARE_STR_DB_UPDATE;
+                $result = $this->hpapi->dbCall (
+                    'wwSkuUpdate',
+                    $sku,
+                    $old['bin'],
+                    $old['additional_ref'],
+                    $old['unit_price'],
+                    $description,
+                    $old['notes']
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception ($error);
+                return false;
+            }
+            return true;
+        }
+    }
+
     public function skus ($search_terms,$show_components=true,$show_composites=true) {
         $show_components &= true;
         $show_composites &= true;
@@ -901,13 +1094,17 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         $rtn->skus = [];
         $like = $this->searchLike ($search_terms);
         if ($like) {
+            if (stripos($like,WHEREWARE_SKU_TEMP_NAMESPACE)===0) {
+                $show_components = true;
+                $show_composites = true;
+            }
             $rtn->sql = "CALL `wwSkus`('$like','$show_components',$show_composites,$limit);";
             try {
                 $result = $this->hpapi->dbCall (
                     'wwSkus',
                     $like,
-                    $show_components,
-                    $show_composites,
+                    1*$show_components,
+                    1*$show_composites,
                     $limit,
                     WHEREWARE_LOCATION_COMPONENT,
                     WHEREWARE_LOCATION_ASSEMBLED
@@ -918,13 +1115,63 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                 throw new \Exception (WHEREWARE_STR_DB);
                 return false;
             }
-            if (count($result)>$max) {
+            $skus = $this->hpapi->parse2D ($result);
+            if (stripos($like,WHEREWARE_SKU_TEMP_NAMESPACE)===0) {
+                $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
+                $sku_idx = 0;
+                $sku_group_id = 0;
+                $user_sku = new \stdClass ();
+                for ($i=0;array_key_exists($i,$skus);$i++) {
+                    if (stripos($skus[$i]->sku,WHEREWARE_SKU_TEMP_NAMESPACE)===0) {
+                        // So in the user SKU namespace
+                        if (strtoupper($skus[$i]->sku_group)==$sku_group) {
+                            // So in the current user SKU namespace
+                            if ($skus[$i]->sku_group_id>$sku_group_id) {
+                                $user_sku = $skus[$i];
+                                $sku_group_id = $skus[$i]->sku_group_id;
+                            }
+                        }
+                    }
+                }
+                if (!$sku_group_id || ($sku_group_id && $user_sku->name)) {
+                    // No user SKU or last one already used (has a name)
+                    $sku_group_id++;
+                    $sku_group_id = str_pad ("$sku_group_id",WHEREWARE_SKU_TEMP_ID_LENGTH,'0',STR_PAD_LEFT);
+                    $new = new \stdClass ();
+                    $new->sku = $sku_group.'-'.$sku_group_id;
+                    $new->bin = '';
+                    $new->additional_ref = '';
+                    $new->unit_price = 0;
+                    $new->name = ''; // therefore unused
+                    $new->notes = '';
+                    try {
+                        $result = $this->hpapi->dbCall (
+                            'wwSkuInsert',
+                            $new->sku,
+                            $new->bin,
+                            $new->additional_ref,
+                            $new->unit_price,
+                            $new->name,
+                            $new->notes
+                        );
+                    }
+                    catch (\Exception $e) {
+                        $this->hpapi->diagnostic ($e->getMessage());
+                        throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                        return false;
+                    }
+                    $new->id = $result[0]['id'];
+                    $skus = [ $new ];
+                }
+                else {
+                    $skus = [ $user_sku ];
+                }
+            }
+            $rtn->skus = $skus;
+            if (count($rtn->skus)>$max) {
                 // Strictly limit generosity
                 throw new \Exception (WHEREWARE_STR_RESULTS_LIMIT);
                 return false;
-            }
-            else {
-                $rtn->skus = $this->hpapi->parse2D ($result);
             }
         }
         return $rtn;
@@ -1069,6 +1316,29 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
             $g[] = basename ($f);
         }
         return $t;
+    }
+
+    private function user ( ) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwUsers',
+                $this->hpapi->email
+            );
+            if (count($result)) {
+                // Theoretically this should always be the case
+                $user = $this->hpapi->parse2D ($result)[0];
+            }
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        // The standard base class hpapi.js expects to receive user details
+        // having the property templates (for Handlebars)
+        $user->templates = $this->templates ();
+        $user->adminerUrl = WHEREWARE_ADMINER_URL;
+        return $user;
     }
 
     public function uuid ( ) {

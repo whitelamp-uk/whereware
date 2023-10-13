@@ -13,10 +13,17 @@ define ( 'WHEREWARE_RESULTS_LIMIT',             1000                    );
 
 
 // Stock locations
+define ( 'WHEREWARE_LOCATION_IN',               'GI-1'                  );
+define ( 'WHEREWARE_LOCATION_OUT',              'GO-1'                  );
 define ( 'WHEREWARE_LOCATION_ASSEMBLED',        'GO-1'                  );
 define ( 'WHEREWARE_LOCATION_ASSEMBLY',         'A-1'                   );
 define ( 'WHEREWARE_LOCATION_COMPONENT',        'W-1'                   );
 define ( 'WHEREWARE_LOCATIONS_DESTINATIONS',    'D-'                    );
 define ( 'WHEREWARE_RETURNS_LOCATION',          'R-1'                   );
 define ( 'WHEREWARE_RETURNS_BINS',              'DF-1,DA-1,TE-1,GR-1'   );
+
+
+// SKUs
+define ( 'WHEREWARE_SKU_TEMP_NAMESPACE',        'NEW'                   );
+define ( 'WHEREWARE_SKU_TEMP_ID_LENGTH',        11                      );
 

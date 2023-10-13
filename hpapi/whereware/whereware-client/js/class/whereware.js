@@ -172,6 +172,30 @@ export class Whereware extends Generic {
         }
     }
 
+    async bookRequest (booking) {
+        var request, response;
+        request = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "book"
+               ,"arguments" : [
+                    booking
+                ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            return response.returnValue;
+        }
+        catch (e) {
+            console.log (e.message);
+            return false;
+        }
+    }
+
     constructor (config) {
         super (config);
         this.data.whereware = {};
@@ -1204,8 +1228,7 @@ export class Whereware extends Generic {
     }
 
     skuList (container,response) {
-        var count,dt,dtp,i,lk,k,mod,noresults,sm,sku,skus;
-        noresults = this.qs (container,'tr.no-results');
+        var count,dt,dtp,i,lk,k,mod,sm,sku,skus;
         skus = this.qsa (container,'tr.result');
         for (sku of skus) {
             sku.remove ();
@@ -1240,7 +1263,7 @@ export class Whereware extends Generic {
                 k = document.createElement ('td');
                 k.classList.add ('sku');
                 k.classList.add ('button');
-                k.dataset.sku = response.skus[i].sku
+                k.dataset.sku = response.skus[i].sku;
                 k.textContent = response.skus[i].sku;
                 sku.appendChild (k);
                 // Cell:
@@ -1280,17 +1303,38 @@ export class Whereware extends Generic {
                 dt.appendChild (dtp);
                 k.appendChild (dt);
                 sku.appendChild (k);
-                // Append row
+                // Row
+                sku.dataset.sku = response.skus[i].sku;
+                if (response.skus[i].hidden>0) {
+                    sku.dataset.hidden = ''
+                }
                 container.appendChild (sku);
             }
         }
-        if (count>0) {
-            noresults.classList.add ('hidden');
-        }
-        else {
-            noresults.classList.remove ('hidden');
-        }
         return count;
+    }
+
+    async skuUserUpdateRequest (sku,description) {
+        var request,response;
+        if (!description.trim()) {
+            console.log ('skuUserUpdateRequest(): description is compulsory');
+            return false;
+        }
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "skuUserUpdate"
+               ,"arguments" : [
+                    sku,
+                    description.trim()
+                ]
+            }
+        }
+        response = await this.request (request);
+        return response.returnValue;
     }
 
     async skusRequest (searchTerms,composites,components) {
