@@ -465,6 +465,54 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwSkuInsert`$$
+CREATE PROCEDURE `wwSkuInsert`(
+   IN `newSku` char(64)
+  ,IN `newBin` char(64)
+  ,IN `newAdditionalRef` char(64)
+  ,IN `newUnitPrice` decimal(8,2) unsigned
+  ,IN `newName` varchar(64)
+  ,IN `newNotes` text
+)
+BEGIN
+  INSERT INTO `ww_sku`
+  SET
+    `sku`=newSku
+   ,`bin`=newBin
+   ,`additional_ref`=newAdditionalRef
+   ,`unit_price`=newUnitPrice
+   ,`name`=newName
+   ,`notes`=newNotes
+  ;
+  SELECT LAST_INSERT_ID() AS `id`
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwSkuUpdate`$$
+CREATE PROCEDURE `wwSkuUpdate`(
+   IN `oldSku` char(64)
+  ,IN `newBin` char(64)
+  ,IN `newAdditionalRef` char(64)
+  ,IN `newUnitPrice` decimal(8,2) unsigned
+  ,IN `newName` varchar(64)
+  ,IN `newNotes` text
+)
+BEGIN
+  UPDATE `ww_sku`
+  SET
+    `bin`=newBin
+   ,`additional_ref`=newAdditionalRef
+   ,`unit_price`=newUnitPrice
+   ,`name`=newName
+   ,`notes`=newNotes
+  WHERE `sku`=oldSku
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwSkus`$$
 CREATE PROCEDURE `wwSkus`(
   IN `likeString` varchar(64) CHARSET ascii
@@ -482,15 +530,18 @@ BEGIN
    ,`c`.`sku` IS NOT NULL AS `is_composite`
    ,`s`.`bin` AS `bin`
    ,`s`.`additional_ref`
+   ,`s`.`unit_price`
    ,`s`.`name`
    ,`s`.`notes`
-   ,`s`.`sku` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `by_sku_left`
-   ,`s`.`additional_ref` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `by_additional_ref_left`
-   ,`s`.`name` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `by_name_left`
-   ,`s`.`sku` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `by_sku`
-   ,`s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `by_additional_ref`
-   ,`s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `by_name`
-   ,DATE(`s`.`updated`)=REPLACE(TRIM('%' FROM likeString),'%','-') AS `by_updated`
+   ,`s`.`sku`=likeString AS `matches_exactly`
+   ,`s`.`sku` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_sku_left`
+   ,`s`.`additional_ref` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref_left`
+   ,`s`.`name` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_name_left`
+   ,`s`.`sku` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_sku`
+   ,`s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref`
+   ,`s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_name`
+   ,SUBSTRING_INDEX(`s`.`sku`,'-',2) AS `sku_group`
+   ,1*SUBSTR(`s`.`sku`,LENGTH(SUBSTRING_INDEX(`s`.`sku`,'-',2))+2) AS `sku_group_id`
    ,IF(
       `c`.`sku` IS NOT NULL
      ,CONCAT(locationComposite,'/',`s`.`bin`)
@@ -548,11 +599,13 @@ BEGIN
       OR `c`.`sku` IS NULL
     )
     ORDER BY
-      `by_updated`
-     ,`by_sku_left` OR `by_additional_ref_left` OR `by_name_left` DESC
-     ,`by_sku` DESC
-     ,`by_additional_ref` DESC
-     ,`by_name_left` DESC
+      `matches_exactly` DESC
+     ,`matches_on_sku_left` DESC
+     ,`matches_on_additional_ref_left` DESC
+     ,`matches_on_name_left` DESC
+     ,`matches_on_sku` DESC
+     ,`matches_on_additional_ref` DESC
+     ,`matches_on_name_left` DESC
      ,`s`.`sku`
     LIMIT 0,rowsLimit
   ;
