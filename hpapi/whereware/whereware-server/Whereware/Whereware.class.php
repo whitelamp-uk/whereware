@@ -108,6 +108,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_ADMINER_URL                          = new \stdClass ();
         $out->constants->WHEREWARE_RESULTS_LIMIT                        = new \stdClass ();
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE                   = new \stdClass ();
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->value             = WHEREWARE_LOCATION_ASSEMBLY;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->value            = WHEREWARE_LOCATION_ASSEMBLED;
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
@@ -116,6 +118,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
         $out->constants->WHEREWARE_ADMINER_URL->value                   = WHEREWARE_ADMINER_URL;
         $out->constants->WHEREWARE_RESULTS_LIMIT->value                 = WHEREWARE_RESULTS_LIMIT;
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->value            = WHEREWARE_SKU_TEMP_NAMESPACE;
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH->value            = WHEREWARE_SKU_TEMP_ID_LENGTH;
         $out->constants->WHEREWARE_LOCATION_ASSEMBLY->definition        = 'Assembly location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_ASSEMBLED->definition       = 'Assembled composite default location code for pick\'n\'book';
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
@@ -124,6 +128,8 @@ class Whereware {
         $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         $out->constants->WHEREWARE_ADMINER_URL->definition              = 'Adminer URL';
         $out->constants->WHEREWARE_RESULTS_LIMIT->definition            = 'Maximum number of search results';
+        $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->definition       = 'Prefix to search for a new user-space SKU';
+        $out->constants->WHEREWARE_SKU_TEMP_ID_LENGTH->definition       = 'Length of user-space SKU ID';
         return $out;
     }
 
@@ -891,6 +897,56 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         return false;
     }
 
+    public function skuUserUpdate ($sku,$description) {
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwUsers',
+                $this->hpapi->email
+            );
+            if (count($result)) {
+                // Theoretically this should always be the case
+                $user = $result[0]['user'];
+            }
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
+        $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$user);
+        if (stripos($sku,$sku_group.'-')===0) {
+            try {
+                $error = WHEREWARE_STR_DB;
+                $result = $this->hpapi->dbCall (
+                    'wwSkus',
+                    $sku,
+                    1,
+                    1,
+                    1,
+                    WHEREWARE_LOCATION_COMPONENT,
+                    WHEREWARE_LOCATION_ASSEMBLED
+                );
+                $old = $result[0];
+                $error = WHEREWARE_STR_DB_UPDATE;
+                $result = $this->hpapi->dbCall (
+                    'wwSkuUpdate',
+                    $sku,
+                    $old['bin'],
+                    $old['additional_ref'],
+                    $old['unit_price'],
+                    $description,
+                    $old['notes']
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception ($error);
+                return false;
+            }
+            return true;
+        }
+    }
+
     public function skus ($search_terms,$show_components=true,$show_composites=true) {
         $show_components &= true;
         $show_composites &= true;
@@ -918,13 +974,79 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                 throw new \Exception (WHEREWARE_STR_DB);
                 return false;
             }
-            if (count($result)>$max) {
+            $skus = $this->hpapi->parse2D ($result);
+            $user = false;
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwUsers',
+                    $this->hpapi->email
+                );
+                if (count($result)) {
+                    // Theoretically this should always be the case
+                    $user = $result[0]['user'];
+                }
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+            $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$user);
+            $sku_idx = 0;
+            $sku_group_id = 0;
+            $user_sku = null;
+            if (stripos($like,WHEREWARE_SKU_TEMP_NAMESPACE)===0) {
+                $user_sku = new \stdClass ();
+            }
+            for ($i=0;array_key_exists($i,$skus);$i++) {
+                if ($user && strtoupper($skus[$i]->sku_group)==$sku_group) {
+                    // So in the user SKU namespace
+                    if ($skus[$i]->sku_group_id>$sku_group_id) {
+                        $user_sku = $skus[$i];
+                        $sku_group_id = $skus[$i]->sku_group_id;
+                    }
+                }
+            }
+            if ($user_sku) {
+                if (!$sku_group_id || ($sku_group_id && $user_sku->name)) {
+                    // No user SKU or last one already used (has a name)
+                    $sku_group_id++;
+                    $sku_group_id = str_pad ("$sku_group_id",WHEREWARE_SKU_TEMP_ID_LENGTH,'0',STR_PAD_LEFT);
+                    $new = new \stdClass ();
+                    $new->sku = $sku_group.'-'.$sku_group_id;
+                    $new->bin = '';
+                    $new->additional_ref = '';
+                    $new->unit_price = 0;
+                    $new->name = ''; // therefore unused
+                    $new->notes = '';
+                    try {
+                        $result = $this->hpapi->dbCall (
+                            'wwSkuInsert',
+                            $new->sku,
+                            $new->bin,
+                            $new->additional_ref,
+                            $new->unit_price,
+                            $new->name,
+                            $new->notes
+                        );
+                    }
+                    catch (\Exception $e) {
+                        $this->hpapi->diagnostic ($e->getMessage());
+                        throw new \Exception (WHEREWARE_STR_DB);
+                        return false;
+                    }
+                    $new->id = $result[0]['id'];
+                    $skus = [ $new ];
+                }
+                else {
+                    $skus = [ $user_sku ];
+                }
+            }
+            $rtn->skus = $skus;
+            if (count($rtn->skus)>$max) {
                 // Strictly limit generosity
                 throw new \Exception (WHEREWARE_STR_RESULTS_LIMIT);
                 return false;
-            }
-            else {
-                $rtn->skus = $this->hpapi->parse2D ($result);
             }
         }
         return $rtn;
