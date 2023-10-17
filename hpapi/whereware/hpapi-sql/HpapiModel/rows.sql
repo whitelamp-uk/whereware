@@ -108,7 +108,10 @@ INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `meth
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skuUserUpdate'),
+<<<<<<< HEAD
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
+=======
+>>>>>>> 7fdfd07911c30870fa364e5505d7bded3d6df59d
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skuUserUpdate'),

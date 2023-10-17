@@ -1337,6 +1337,29 @@ export class Whereware extends Generic {
         return response.returnValue;
     }
 
+    async skuUserUpdateRequest (sku,description) {
+        var request,response;
+        if (!description.trim()) {
+            console.log ('skuUserUpdateRequest(): description is compulsory');
+            return false;
+        }
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "skuUserUpdate"
+               ,"arguments" : [
+                    sku,
+                    description.trim()
+                ]
+            }
+        }
+        response = await this.request (request);
+        return response.returnValue;
+    }
+
     async skusRequest (searchTerms,composites,components) {
         var request,response;
         if (!composites && !components) {
