@@ -656,10 +656,8 @@ BEGIN
   WHERE (
        likeString IS NULL
     OR likeString=''
-    OR `s`.`sku` LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
-    OR `s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
-    OR `s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
-    OR DATE(`s`.`updated`)=REPLACE(TRIM('%' FROM likeString),'%','-')
+    OR CONCAT(`s`.`sku`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
+    OR CONCAT(`s`.`name`,`s`.`additional_ref`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
   )
     AND (
          includeComponents>0
