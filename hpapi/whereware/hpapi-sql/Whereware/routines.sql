@@ -594,13 +594,15 @@ BEGIN
    ,`s`.`name`
    ,`s`.`notes`
    ,`m`.`sku` IS NOT NULL AS `moved`
-   ,`s`.`sku`=likeString AS `matches_exactly`
+   ,`s`.`sku`=likeString AS `matches_exactly_on_sku`
    ,`s`.`sku` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_sku_left`
    ,`s`.`additional_ref` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref_left`
    ,`s`.`name` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_name_left`
    ,`s`.`sku` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_sku`
    ,`s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref`
    ,`s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_name`
+   ,CONCAT(`s`.`sku`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches`
+   ,CONCAT(`s`.`name`,`s`.`additional_ref`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_reverse`
    ,SUBSTRING_INDEX(`s`.`sku`,'-',2) AS `sku_group`
    ,1*SUBSTR(`s`.`sku`,LENGTH(SUBSTRING_INDEX(`s`.`sku`,'-',2))+2) AS `sku_group_id`
    ,IF(
@@ -668,13 +670,15 @@ BEGIN
       OR `c`.`sku` IS NULL
     )
     ORDER BY
-      `matches_exactly` DESC
+      `matches_exactly_on_sku` DESC
      ,`matches_on_sku_left` DESC
      ,`matches_on_additional_ref_left` DESC
      ,`matches_on_name_left` DESC
      ,`matches_on_sku` DESC
      ,`matches_on_additional_ref` DESC
      ,`matches_on_name_left` DESC
+     ,`matches` DESC
+     ,`matches_reverse` DESC
      ,`s`.`sku`
     LIMIT 0,rowsLimit
   ;
