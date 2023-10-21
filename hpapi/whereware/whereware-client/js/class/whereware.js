@@ -163,7 +163,6 @@ export class Whereware extends Generic {
         }
         try {
             response = await this.request (request);
-            this.data.whereware.generics = response.returnValue;
             return response.returnValue;
         }
         catch (e) {
