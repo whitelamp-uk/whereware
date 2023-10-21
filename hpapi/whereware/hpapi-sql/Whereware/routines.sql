@@ -20,22 +20,27 @@ END$$
 DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwBlueprint`$$
 CREATE PROCEDURE `wwBlueprint`(
-  IN `CompositeSKU` char(64) CHARSET ascii
+  IN `compositeSKU` char(64) CHARSET ascii
 )
 BEGIN
   SELECT
-    `g`.`quantity`
+    `c`.`sku`
+   ,`c`.`additional_ref`
+   ,`c`.`name` AS `sku_name`
+   ,`g`.`quantity`
    ,`g`.`generic`
    ,`g`.`name`
    ,GROUP_CONCAT(
-      CONCAT(`s`.`sku`,':',`s`.`name`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
+      CONCAT_WS(':',`v`.`quantity`,`v`.`sku`,`s`.`additional_ref`,`s`.`name`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
     ) AS `options_preferred_first`
   FROM `ww_generic` AS `g`
   JOIN `ww_variant` AS `v`
     ON `v`.`generic`=`g`.`generic`
   JOIN `ww_sku` AS `s`
     ON `s`.`sku`=`v`.`sku`
-  WHERE `g`.`sku`=CompositeSKU
+  JOIN `ww_sku` AS `c`
+    ON `c`.`sku`=`g`.`sku`
+  WHERE `g`.`sku`=compositeSKU
   GROUP BY `g`.`generic`
   ORDER BY `g`.`generic`
   ;
@@ -105,6 +110,63 @@ BEGIN
    ,`notes`=bookNotes
   ;
   SELECT LAST_INSERT_ID() AS `id`
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwGenerics`$$
+CREATE PROCEDURE `wwGenerics`(
+  IN `likeString` varchar(64) CHARSET ascii
+ ,IN `rowsLimit` int(11) UNSIGNED
+)
+BEGIN
+  SELECT
+    `g`.`updated`
+   ,`g`.`hidden`
+   ,`g`.`sku`
+   ,`g`.`quantity`
+   ,`g`.`generic`
+   ,`g`.`name`
+   ,`g`.`notes`
+   ,`g`.`sku`=likeString AS `matches_exactly_on_sku`
+   ,`g`.`generic`=likeString AS `matches_on_generic_exactly`
+   ,`g`.`sku` LIKE CONCAT(likeString,'%') AS `matches_on_sku_left`
+   ,`g`.`generic` LIKE CONCAT(likeString,'%') AS `matches_on_generic_left`
+   ,`g`.`name` LIKE CONCAT(likeString,'%') AS `matches_on_name_left`
+   ,`s`.`additional_ref` LIKE CONCAT(likeString,'%') AS `matches_on_additional_ref_left`
+   ,`s`.`name` LIKE CONCAT(likeString,'%') AS `matches_on_skuname_left`
+   ,`g`.`sku` LIKE CONCAT('%',likeString,'%') AS `matches_on_sku`
+   ,`g`.`generic` LIKE CONCAT('%',likeString,'%') AS `matches_on_generic`
+   ,`g`.`name` LIKE CONCAT('%',likeString,'%') AS `matches_on_name`
+   ,`s`.`additional_ref` LIKE CONCAT('%',likeString,'%') AS `matches_on_additional_ref`
+   ,`s`.`name` LIKE CONCAT('%',likeString,'%') AS `matches_on_skuname`
+   ,CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',likeString,'%') AS `matches`
+   ,CONCAT(`s`.`name`,`s`.`additional_ref`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%') AS `matches_reverse`
+  FROM `ww_generic` AS `g`
+  JOIN `ww_composite` AS `c`
+    ON `c`.`sku`=`g`.`sku`
+  JOIN `ww_sku` AS `s`
+    ON `s`.`sku`=`c`.`sku`
+  WHERE likeString IS NULL
+     OR likeString=''
+     OR CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',likeString,'%')
+     OR CONCAT(`s`.`name`,`s`.`additional_ref`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%')
+  ORDER BY
+    `matches_on_sku_left` DESC
+   ,`matches_on_generic_left` DESC
+   ,`matches_on_name_left` DESC
+   ,`matches_on_additional_ref_left` DESC
+   ,`matches_on_skuname_left` DESC
+   ,`matches_on_sku` DESC
+   ,`matches_on_generic` DESC
+   ,`matches_on_name` DESC
+   ,`matches_on_additional_ref` DESC
+   ,`matches_on_skuname` DESC
+   ,`matches` DESC
+   ,`matches_reverse` DESC
+   ,`g`.`generic`
+  LIMIT 0,rowsLimit
   ;
 END$$
 
