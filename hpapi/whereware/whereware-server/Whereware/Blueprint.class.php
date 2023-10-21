@@ -32,16 +32,24 @@ class Blueprint {
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
         }
-        $blueprint = [];
+        $blueprint = new \stdClass ();
+        $blueprint->sku = $sku;
+        $blueprint->additional_ref = '';
+        $blueprint->name = '';
+        $blueprint->generics = [];
         foreach ($result as $item) {
+            $blueprint->additional_ref = $item->additional_ref;
+            $blueprint->name = $item->sku_name;
             $item->options = explode (',',$item->options_preferred_first);
             unset ($item->options_preferred_first);
             $item->components = [];
             foreach ($item->options as $o) {
                 $c = new \stdClass ();
                 $o = explode (':',$o);
-                $c->sku = $o[0];
-                $c->name = $o[1];
+                $c->quantity = $o[0];
+                $c->sku = $o[1];
+                $c->additional_ref = $o[2];
+                $c->name = $o[3];
                 try {
                     $rows = $this->hpapi->dbCall (
                         'wwInventory',
@@ -65,7 +73,7 @@ class Blueprint {
 
                 $item->components[] = $c;
             }
-            $blueprint[] = $item;
+            $blueprint->generics[] = $item;
         }
         return $blueprint;
     }
