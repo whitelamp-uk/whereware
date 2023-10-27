@@ -52,7 +52,7 @@ class Whereware {
         }
         */
         // Missing null fields
-        foreach (['project','deliver_by','eta','pick_scheduled','pick_by','prefer_by'] as $p) {
+        foreach (['project','task_id','team','deliver_by','eta','pick_scheduled','pick_by','prefer_by'] as $p) {
             if (!property_exists($booking,$p) || !$booking->$p) {
                 $booking->$p = null;
             }
@@ -133,11 +133,15 @@ class Whereware {
             return false;
         }
         $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
+        $assigns = [
+        ];
         foreach ($booking->items as $item) {
             try {
+                $error = WHEREWARE_STR_DB;
                 $bin_from = '';
                 if ($booking->select_from_bin) {
                     // Get bin with most available stock
+                    $error = WHEREWARE_STR_DB;
                     $result = $this->hpapi->dbCall (
                         'wwInventory',
                         $locations[$booking->type]['from'],
@@ -151,6 +155,7 @@ class Whereware {
                         }
                     }
                 }
+                $error = WHEREWARE_STR_DB_INSERT;
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
                     $this->user()->user,
@@ -164,8 +169,15 @@ class Whereware {
                     $locations[$booking->type]['via'],
                     ''
                 );
-                $item->move1_id = $result[0]['id'];
+                $assigns[] = [
+                    $this->user()->user,
+                    $result[0]['id'],
+                    $booking->project,
+                    $booking->task_id,
+                    $booking->team
+                ];
                 if (array_key_exists('to',$locations[$booking->type])) {
+                    $error = WHEREWARE_STR_DB;
                     if ($booking->select_from_bin) {
                         // Get bin with most available stock
                         $result = $this->hpapi->dbCall (
@@ -181,6 +193,7 @@ class Whereware {
                             }
                         }
                     }
+                    $error = WHEREWARE_STR_DB_INSERT;
                     $result = $this->hpapi->dbCall (
                         'wwMoveInsert',
                         $this->user()->user,
@@ -194,14 +207,36 @@ class Whereware {
                         $locations[$booking->type]['to'],
                         ''
                     );
-                    $item->move2_id = $result[0]['id'];
+                    $assigns[] = [
+                        $this->user()->user,
+                        $result[0]['id'],
+                        $booking->project,
+                        $booking->task_id,
+                        $booking->team
+                    ];
                 }
             }
             catch (\Exception $e) {
                 $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB);
+                throw new \Exception ($error);
                 return false;
             }
+        }
+// TODO
+sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
+        try {
+            $error = WHEREWARE_STR_DB_UPDATE;
+            foreach ($assigns as $a) {
+                $result = $this->hpapi->dbCall (
+                    'wwMoveAssign',
+                    ...$a
+                );
+            }
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception ($error);
+            return false;
         }
         return $booking->id;
     }
@@ -697,7 +732,7 @@ class Whereware {
         }
         try {
 // TODO
-sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
+sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
             $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
                 $result = $this->hpapi->dbCall (
