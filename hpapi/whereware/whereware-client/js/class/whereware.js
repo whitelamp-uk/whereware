@@ -227,9 +227,95 @@ export class Whereware extends Generic {
         }
     }
 
-    async move ( ) {
+    genericList (container,response) {
+        var count,dt,dtp,i,lk,k,mod,sm,generic,generics;
+        generics = this.qsa (container,'tr.result');
+        for (generic of generics) {
+            generic.remove ();
+        }
+        count = 0;
+        if ('generics' in response) {
+            for (i=0;response.generics[i];i++) {
+                count++;
+                generic = document.createElement ('tr');
+                generic.classList.add ('result');
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('updated');
+                k.textContent = response.generics[i].updated;
+                generic.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('adminer');
+                lk = document.createElement ('a');
+                lk.classList.add ('whereware-link');
+                lk.dataset.action = 'select';
+                lk.dataset.table = 'ww_generic';
+                lk.dataset.hidden = response.generics[i].hidden;
+                lk.dataset.column = 'generic';
+                lk.dataset.operator = '=';
+                lk.dataset.value = response.generics[i].generic;
+                lk.textContent = '↗';
+                lk.addEventListener ('click',this.adminerLink.bind(this));
+                k.appendChild (lk);
+                generic.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('generic');
+                k.classList.add ('button');
+                k.dataset.generic = response.generics[i].generic;
+                k.textContent = response.generics[i].generic;
+                generic.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('name');
+                k.textContent = response.generics[i].name;
+                generic.appendChild (k);
+                // Cell:
+                k = document.createElement ('td');
+                k.classList.add ('notes');
+                dt = document.createElement ('details');
+                sm = document.createElement ('summary');
+                sm.textContent = 'Notes';
+                dt.appendChild (sm);
+                dtp = document.createElement ('p');
+                dtp.textContent = response.generics[i].notes;
+                dt.appendChild (dtp);
+                k.appendChild (dt);
+                generic.appendChild (k);
+                // Row
+                generic.dataset.generic = response.generics[i].generic;
+                if (response.generics[i].hidden>0) {
+                    generic.dataset.hidden = ''
+                }
+                container.appendChild (generic);
+            }
+        }
+        return count;
+    }
+
+    async genericsRequest (searchTerms) {
+        var request,response;
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "generics"
+               ,"arguments" : [
+                    searchTerms
+                ]
+            }
+        }
+        response = await this.request (request);
+        this.data.whereware.sql = response.returnValue.sql;
+        this.data.whereware.generics = response.returnValue.generics;
+        return response.returnValue;
+    }
+
+    async move (form) {
         var bid,err,form,generics,i,move,request,response;
-        form = this.qs (this.restricted,'#blueprint');
         if (form.quantity.value<1) {
             this.statusShow ('Quantity at least 1 must be entered');
             return;
@@ -994,6 +1080,7 @@ export class Whereware extends Generic {
                 }
             }
         }
+        rtn = false;
         if (returns.moves.length>0) {
             try {
                 rtn = await this.returnsRequest (returns);
@@ -1065,6 +1152,7 @@ export class Whereware extends Generic {
             scn.appendChild (div);
         }
         scn.classList.add ('active');
+        return rtn;
     }
 
     async returnsClose (evt) {
