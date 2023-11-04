@@ -4,7 +4,9 @@
 
 namespace Whereware;
 
-class Blueprint {
+require_once __DIR__.'/Whereware.class.php';
+
+class Blueprint extends Whereware {
 
     /* Interacts with a location/bin/SKU `whereware` database model */
 
@@ -76,6 +78,36 @@ class Blueprint {
             $blueprint->generics[] = $item;
         }
         return $blueprint;
+    }
+
+    public function generics ($search_terms) {
+        $max = WHEREWARE_RESULTS_LIMIT;
+        $limit = $max + 1;
+        $rtn = new \stdClass ();
+        $rtn->generics = [];
+        $like = $this->searchLike ($search_terms);
+        if ($like) {
+            $rtn->sql = "CALL `wwSkus`('$like',$limit);";
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwGenerics',
+                    $like,
+                    $limit
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+            $rtn->skus = $this->hpapi->parse2D ($result);
+            if (count($rtn->skus)>$max) {
+                // Strictly limit generosity
+                throw new \Exception (WHEREWARE_STR_RESULTS_LIMIT);
+                return false;
+            }
+        }
+        return $rtn;
     }
 
 }
