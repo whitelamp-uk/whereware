@@ -995,6 +995,7 @@ export class Whereware extends Generic {
         for (i=(this.data.whereware.projects.length-1);i>=0;i--) {
             o = document.createElement ('option');
             o.value = this.data.whereware.projects[i].project;
+            o.dataset.name = 'TEST-'+this.data.whereware.projects[i].name;
             o.innerText = this.data.whereware.projects[i].project + ' ' + this.data.whereware.projects[i].name;
             projectSelect.appendChild (o);
         }
@@ -1401,10 +1402,10 @@ export class Whereware extends Generic {
         return count;
     }
 
-    async skuUserUpdateRequest (sku,description) {
+    async skuUserUpdateRequest (sku,additional_ref,name,notes) {
         var request,response;
-        if (!description.trim()) {
-            console.log ('skuUserUpdateRequest(): description is compulsory');
+        if (!description.trim() && !name.trim()) {
+            console.log ('skuUserUpdateRequest(): either an additional ref or a name must be given');
             return false;
         }
         request     = {
@@ -1416,30 +1417,9 @@ export class Whereware extends Generic {
                ,"method" : "skuUserUpdate"
                ,"arguments" : [
                     sku,
-                    description.trim()
-                ]
-            }
-        }
-        response = await this.request (request);
-        return response.returnValue;
-    }
-
-    async skuUserUpdateRequest (sku,description) {
-        var request,response;
-        if (!description.trim()) {
-            console.log ('skuUserUpdateRequest(): description is compulsory');
-            return false;
-        }
-        request     = {
-            "email" : this.access.email.value
-           ,"method" : {
-                "vendor" : "whereware"
-               ,"package" : "whereware-server"
-               ,"class" : "\\Whereware\\Whereware"
-               ,"method" : "skuUserUpdate"
-               ,"arguments" : [
-                    sku,
-                    description.trim()
+                    additional_ref.trim (),
+                    name.trim (),
+                    notes.trim ()
                 ]
             }
         }

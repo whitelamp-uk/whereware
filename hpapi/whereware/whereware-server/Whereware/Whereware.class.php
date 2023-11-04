@@ -31,7 +31,9 @@ class Whereware {
         /*
         Example $booking:
         {
+            location             : "S-XYZ",
             project              : "1234567",
+            project_name         : "My project",
             order_ref            : "ABCD"
             type                 : "incoming",
             export               : true,
@@ -58,7 +60,7 @@ class Whereware {
             }
         }
         // Missing empty fields
-        foreach (['booker','order_ref','type','shipment_details','location_name','location_address','notes'] as $p) {
+        foreach (['booker','order_ref','type','shipment_details','location','location_name','location_address','notes'] as $p) {
             if (!property_exists($booking,$p)) {
                 $booking->$p = '';
             }
@@ -78,36 +80,6 @@ class Whereware {
                 }
             }
             $item->quantity = intval ($item->quantity);
-        }
-        $locations = [
-            'incoming' => [
-                'from' => '',
-                'via' => WHEREWARE_LOCATION_IN,
-                'to' => WHEREWARE_LOCATION_COMPONENT
-            ],
-            'internal' => [
-                'from' => WHEREWARE_LOCATION_COMPONENT,
-                'via' => WHEREWARE_LOCATION_COMPONENT,
-            ],
-            'outgoing' => [
-                'from' => WHEREWARE_LOCATION_COMPONENT,
-                'via' => WHEREWARE_LOCATION_OUT,
-                'to' => WHEREWARE_LOCATIONS_DESTINATIONS.$booking->project
-            ]
-        ];
-        $items = "";
-        try {
-            $result = $this->hpapi->dbCall (
-                'wwLocationInsertMissing',
-                WHEREWARE_LOCATIONS_DESTINATIONS.$booking->project,
-                'Location for project '.$booking->project,
-                $booking->location_name."\n".$booking->location_address,
-            );
-        }
-        catch (\Exception $e) {
-            $this->hpapi->diagnostic ($e->getMessage());
-            throw new \Exception (WHEREWARE_STR_DB);
-            return false;
         }
         try {
             $result = $this->hpapi->dbCall (
@@ -131,6 +103,59 @@ class Whereware {
             $this->hpapi->diagnostic ($e->getMessage());
             throw new \Exception (WHEREWARE_STR_DB);
             return false;
+        }
+        $locations = [
+            'incoming' => [
+                'from' => '',
+                'via' => WHEREWARE_LOCATION_IN,
+                'to' => WHEREWARE_LOCATION_COMPONENT
+            ],
+            'internal' => [
+                'from' => WHEREWARE_LOCATION_COMPONENT,
+                'via' => WHEREWARE_LOCATION_COMPONENT,
+            ],
+            'outgoing' => [
+                'from' => WHEREWARE_LOCATION_COMPONENT,
+                'via' => WHEREWARE_LOCATION_OUT,
+                'to' => WHEREWARE_LOCATIONS_BOOKINGS.$booking->id
+            ]
+        ];
+        if ($booking->type=='incoming') {
+            if ($booking->location) {
+                $locations['incoming']['from'] = $booking->location;
+            }
+            else {
+                $booking->location = $locations['incoming']['from'];
+            }
+        }
+        elseif ($booking->type=='outgoing') {
+            if ($booking->location) {
+                $locations['outgoing']['to'] = $booking->location;
+            }
+            else {
+                $booking->location = $locations['outgoing']['to'];
+            }
+        }
+        else {
+            $booking->location = null;
+        }
+        $items = "";
+        if ($booking->location) {
+            try {
+// TODO: This needs to allow adding of broken down address: address_1, ..., postcode
+// An unstructured name/address for now goes in notes field but maybe have new field `address_label`
+                $result = $this->hpapi->dbCall (
+                    'wwLocationInsertMissing',
+                    $booking->location,
+                    $booking->location_name,
+                    $booking->location_address,
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                return false;
+            }
         }
         $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
         $assigns = [
@@ -1084,8 +1109,12 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
         return false;
     }
 
-    public function skuUserUpdate ($sku,$description) {
+    public function skuUserUpdate ($sku,$additional_ref,$name,$notes) {
         $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
+        $notes = trim ($notes);
+        if ($notes) {
+            $notes = "\n$notes";
+        }
         if (stripos($sku,$sku_group.'-')===0) {
             try {
                 $error = WHEREWARE_STR_DB;
@@ -1104,10 +1133,10 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     'wwSkuUpdate',
                     $sku,
                     $old['bin'],
-                    $old['additional_ref'],
+                    $additional_ref,
                     $old['unit_price'],
-                    $description,
-                    $old['notes']
+                    $name,
+                    $old['notes'].$notes
                 );
             }
             catch (\Exception $e) {
@@ -1168,8 +1197,8 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                         }
                     }
                 }
-                if (!$sku_group_id || ($sku_group_id && $user_sku->name)) {
-                    // No user SKU or last one already used (has a name)
+                if (!$sku_group_id || ($sku_group_id && ($user_sku->additional_ref || $user_sku->name))) {
+                    // No user SKU or last one already used (has either an additional ref or a name)
                     $sku_group_id++;
                     $sku_group_id = str_pad ("$sku_group_id",WHEREWARE_SKU_TEMP_ID_LENGTH,'0',STR_PAD_LEFT);
                     $new = new \stdClass ();
@@ -1177,8 +1206,9 @@ sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMov
                     $new->bin = '';
                     $new->additional_ref = '';
                     $new->unit_price = 0;
-                    $new->name = ''; // therefore unused
+                    $new->name = '';
                     $new->notes = '';
+                    // Neither an additional_ref nor a name therefore unused
                     try {
                         $result = $this->hpapi->dbCall (
                             'wwSkuInsert',
