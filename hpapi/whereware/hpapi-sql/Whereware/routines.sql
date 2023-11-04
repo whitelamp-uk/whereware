@@ -115,6 +115,31 @@ END$$
 
 
 DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwBookingRelocate`$$
+CREATE PROCEDURE `wwBookingRelocate`(
+   IN `relocater` varchar(64)
+  ,IN `bookingId` int(11) unsigned
+  ,IN `fromLocation` char(64) CHARSET ascii
+  ,IN `fromBin` char(64) CHARSET ascii
+  ,IN `toLocation` char(64) CHARSET ascii
+  ,IN `toBin` char(64) CHARSET ascii
+)
+BEGIN
+  UPDATE `ww_move`
+  SET
+    `updater`=relocater
+   ,`from_location`=IF(fromLocation IS NULL OR fromLocation='',`from_location`,fromLocation)
+   ,`from_bin`=IF(fromBin IS NULL OR fromBin='',`from_bin`,fromBin)
+   ,`to_location`=IF(toLocation IS NULL OR toLocation='',`to_location`,toLocation)
+   ,`to_bin`=IF(toBin IS NULL OR toBin='',`to_bin`,toBin)
+  WHERE `booking_id`=bookingId
+    AND `from_location` NOT LIKE 'W-%'
+    AND `to_location` NOT LIKE 'W-%'
+  ;
+END$$
+
+
+DELIMITER $$
 DROP PROCEDURE IF EXISTS `wwGenerics`$$
 CREATE PROCEDURE `wwGenerics`(
   IN `likeString` varchar(64) CHARSET ascii
@@ -167,6 +192,19 @@ BEGIN
    ,`matches_reverse` DESC
    ,`g`.`generic`
   LIMIT 0,rowsLimit
+  ;
+END$$
+
+
+DELIMITER $$
+DROP PROCEDURE IF EXISTS `wwHide`$$
+CREATE PROCEDURE `wwHide`(
+  IN `tableName` char(64) CHARSET ascii
+ ,IN `columnName` char(64) CHARSET ascii
+ ,IN `columnValue` char(64) CHARSET ascii
+)
+BEGIN
+  EXECUTE IMMEDIATE CONCAT('UPDATE `',tableName,'` SET `hidden`=1 WHERE `',columnName,'`=?') USING columnValue
   ;
 END$$
 
