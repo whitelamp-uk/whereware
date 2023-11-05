@@ -61,7 +61,7 @@ class Whereware {
         }
         // Missing empty fields
         foreach (['booker','order_ref','type','shipment_details','location','location_name','location_address','notes'] as $p) {
-            if (!property_exists($booking,$p)) {
+            if (!property_exists($booking,$p) || !$booking->$p) {
                 $booking->$p = '';
             }
         }
