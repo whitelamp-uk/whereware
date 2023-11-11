@@ -4,7 +4,7 @@ return [
         'all_tables'                => '&where[0][col]=hidden&where[0][op]=%3D&where[0][val]=0&text_length=1000',
         'per_table' => [
             'lr_booking'            => '&order[0]=id&desc[0]=1',
-            'lr_raised_movement'    => '&where[0][col]=&where[0][op]=%3D&where[0][val]=',
+            'lr_raised_movement'    => '&where[0][col]=&where[0][op]=%3D&where[0][val]=&order[0]=booking_id&desc[0]=1',
             'lr_raised_refresh'     => '&where[0][col]=&where[0][op]=%3D&where[0][val]=',
 
             'ww_bin'                => '&order[0]=bin',
