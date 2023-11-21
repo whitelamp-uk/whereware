@@ -1404,7 +1404,7 @@ export class Whereware extends Generic {
 
     async skuUserUpdateRequest (sku,additional_ref,name,notes) {
         var request,response;
-        if (!description.trim() && !name.trim()) {
+        if (!additional_ref.trim() && !name.trim()) {
             console.log ('skuUserUpdateRequest(): either an additional ref or a name must be given');
             return false;
         }
