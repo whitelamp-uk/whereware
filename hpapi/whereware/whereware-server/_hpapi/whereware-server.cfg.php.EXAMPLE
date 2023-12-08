@@ -12,6 +12,13 @@ define ( 'WHEREWARE_ADMINER_URL',               '/whereware/stores/'    );
 define ( 'WHEREWARE_RESULTS_LIMIT',             1000                    );
 
 
+// Comms
+if ($_SERVER['HTTP_HOST']=='whereware.lime-retail.co.uk') {
+    // Live
+    define ( 'WHEREWARE_EMAIL_BOOKED_CC',       'dom@latter.org'        );
+}
+
+
 // Stock locations
 define ( 'WHEREWARE_LOCATION_IN',               'GI-1'                  );
 define ( 'WHEREWARE_LOCATION_OUT',              'GO-1'                  );
