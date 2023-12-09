@@ -160,6 +160,7 @@ INSERT IGNORE INTO `hpapi_spr` (`model`, `spr`, `notes`) VALUES
 ('Whereware',	'wwLocations',	'Locations'),
 ('Whereware', 'wwMoveAssign', 'Update task ID and team for a given move'),
 ('Whereware',	'wwMoveInsert',	'Insert a new stock move'),
+('Whereware', 'wwOrder', 'Confirms a given order reference has been used'),
 ('Whereware',	'wwOrders',	'List orders for a given SKU'),
 ('Whereware',	'wwPick',	'Picklist of generics/components for a given composite SKU'),
 ('Whereware', 'wwProjectInsert',  'Insert a project'),
@@ -227,6 +228,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware',	'wwMoveInsert',	8,	'From bin',	1,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	9,	'To location',	1,	'varchar-64'),
 ('Whereware',	'wwMoveInsert',	10,	'To bin',	1,	'varchar-64'), -- The anywhere bin is an empty string
+('Whereware', 'wwOrder', 1,  'Order reference',  0,  'varchar-64'),
 ('Whereware',	'wwOrders',	1,	'SKU',	0,	'varchar-64'),
 ('Whereware',	'wwOrders',	2,	'Destination locations start with',	0,	'varchar-64'),
 ('Whereware',	'wwOrders',	3,	'Results limit',	0,	'int-11-positive'),
