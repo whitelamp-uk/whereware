@@ -5,17 +5,26 @@
 define ( 'WHEREWARE_TEMPLATE_GLOB',             './template/*.hbs'      );
 define ( 'WHEREWARE_TOKEN_LIFE_MINS',           10                      );
 define ( 'WHEREWARE_VERIFY_TIME',               300                     );
+define ( 'WHEREWARE_BIN_PRIORITY',              'MINSA' ); // Minimum Sufficient Availability
+//define ( 'WHEREWARE_BIN_PRIORITY',              'MAXA' ); // Maximum Availability
 
 
 // Database
-define ( 'WHEREWARE_ADMINER_URL',               '/whereware/stores/'    );
+if (array_key_exists('HTTP_HOST',$_SERVER) && $_SERVER['HTTP_HOST']=='some.host') {
+    // Live
+    define ( 'WHEREWARE_ADMINER_URL',           'https://some.host/stores/' );
+}
+else {
+    // Development
+    define ( 'WHEREWARE_ADMINER_URL',           '/some/adminer/'        );
+}
 define ( 'WHEREWARE_RESULTS_LIMIT',             1000                    );
 
 
 // Comms
-if ($_SERVER['HTTP_HOST']=='whereware.lime-retail.co.uk') {
+if (array_key_exists('HTTP_HOST',$_SERVER) && $_SERVER['HTTP_HOST']=='some.host') {
     // Live
-    define ( 'WHEREWARE_EMAIL_BOOKED_CC',       'dom@latter.org'        );
+    define ( 'WHEREWARE_EMAIL_BOOKED_CC',       'bookings@some.host'    );
 }
 
 
