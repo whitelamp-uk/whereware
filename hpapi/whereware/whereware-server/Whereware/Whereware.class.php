@@ -27,6 +27,46 @@ class Whereware {
         return $this->user ();
     }
 
+    public function binSelect ($qty,$sku,$results) {
+        $bin                = ''; // the "anywhere" bin
+        $max                = 0;
+        $matches            = [];
+        foreach ($results as $r) {
+            // wwInventory() results are from a LIKE search
+            if ($r['sku']==$sku) {
+                // Result exactly matches this SKU
+                $matches[]  = $r;
+                if ($max<$r['available']) {
+                    $max    = $r['available'];
+                }
+            }
+        }
+        if (count($matches)) {
+            // If $max<=$qty, the MINSA model is pointless - we want the bin with the mostest in this case
+            if ($max>$qty && WHEREWARE_BIN_PRIORITY=='MINSA') {
+                // Minimum Sufficient Availability model - MINSA
+                $results        = [];
+                foreach ($matches as $m) {
+                    if (!array_key_exists($m['available'],$results)) {
+                        $results[$m['available']] = $m;
+                    }
+                }
+                ksort ($results);
+                foreach ($results as $r) {
+                    if ($r['available']>=$qty) {
+                        $bin    = $r['bin'];
+                        break;
+                    }
+                }
+            }
+            else {
+                // Maximum Availability model - MAXA
+                $bin = $matches[0]['bin'];
+            }
+        }
+        return $bin;
+    }
+
     public function book ($booking) {
         /*
         Example $booking:
@@ -173,11 +213,7 @@ class Whereware {
                         $item->sku
                     );
                     if (count($result)) {
-                        // wwInventory() uses a LIKE search
-                        // Perfect matches first, most available bin first
-                        if ($result[0]['sku']==$item->sku) {
-                            $bin_from = $result[0]['bin'];
-                        }
+                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
                     }
                 }
                 $error = WHEREWARE_STR_DB_INSERT;
