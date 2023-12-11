@@ -3,6 +3,7 @@
 /* Copyright 2022 Whitelamp http://www.whitelamp.com/ */
 
 
+// Reporting and errors
 define ( 'WHEREWARE_STR_403',                   '601 403 Sorry - data unavailable'          );
 define ( 'WHEREWARE_STR_DB',                    '602 500 Failed to retrieve data'           );
 define ( 'WHEREWARE_STR_DB_INSERT',             '603 500 Failed to insert data'             );
