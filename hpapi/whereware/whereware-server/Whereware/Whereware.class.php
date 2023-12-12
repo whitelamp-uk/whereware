@@ -89,8 +89,7 @@ class Whereware {
                     sku  : "NEW-MARK-00000000010",
                 },
                 ...
-            ],
-            select_from_bin      : false
+            ]
         }
         */
         // Missing null fields
@@ -203,18 +202,15 @@ class Whereware {
         foreach ($booking->items as $item) {
             try {
                 $error = WHEREWARE_STR_DB;
+                $result = $this->hpapi->dbCall (
+                    'wwInventory',
+                    $locations[$booking->type]['from'],
+                    $item->sku
+                );
                 $bin_from = '';
-                if ($booking->select_from_bin) {
-                    // Get bin with most available stock
-                    $error = WHEREWARE_STR_DB;
-                    $result = $this->hpapi->dbCall (
-                        'wwInventory',
-                        $locations[$booking->type]['from'],
-                        $item->sku
-                    );
-                    if (count($result)) {
-                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
-                    }
+                if (count($result)) {
+                    // Get bin by a selection algorithm
+                    $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
                 }
                 $error = WHEREWARE_STR_DB_INSERT;
                 $result = $this->hpapi->dbCall (
@@ -239,20 +235,15 @@ class Whereware {
                 ];
                 if (array_key_exists('to',$locations[$booking->type])) {
                     $error = WHEREWARE_STR_DB;
-                    if ($booking->select_from_bin) {
-                        // Get bin with most available stock
-                        $result = $this->hpapi->dbCall (
-                            'wwInventory',
-                            $locations[$booking->type]['via'],
-                            $item->sku
-                        );
-                        if (count($result)) {
-                            // wwInventory() uses a LIKE search
-                            // Perfect matches first, most available bin first
-                            if ($result[0]['sku']==$item->sku) {
-                                $bin_from = $result[0]['bin'];
-                            }
-                        }
+                    $result = $this->hpapi->dbCall (
+                        'wwInventory',
+                        $locations[$booking->type]['via'],
+                        $item->sku
+                    );
+                    $bin_from = '';
+                    if (count($result)) {
+                        // Get bin by a selection algorithm
+                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
                     }
                     $error = WHEREWARE_STR_DB_INSERT;
                     $result = $this->hpapi->dbCall (
