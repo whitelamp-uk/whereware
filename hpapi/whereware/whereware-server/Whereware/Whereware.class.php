@@ -201,16 +201,18 @@ class Whereware {
         ];
         foreach ($booking->items as $item) {
             try {
-                $error = WHEREWARE_STR_DB;
-                $result = $this->hpapi->dbCall (
-                    'wwInventory',
-                    $locations[$booking->type]['from'],
-                    $item->sku
-                );
                 $bin_from = '';
-                if (count($result)) {
-                    // Get bin by a selection algorithm
-                    $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
+                if ($locations[$booking->type]['from']) {
+                    // Get best bin by a selection algorithm
+                    $error = WHEREWARE_STR_DB;
+                    $result = $this->hpapi->dbCall (
+                        'wwInventory',
+                        $locations[$booking->type]['from'],
+                        $item->sku
+                    );
+                    if (count($result)) {
+                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
+                    }
                 }
                 $error = WHEREWARE_STR_DB_INSERT;
                 $result = $this->hpapi->dbCall (
@@ -234,6 +236,7 @@ class Whereware {
                     $booking->team
                 ];
                 if (array_key_exists('to',$locations[$booking->type])) {
+                    // Get best bin by a selection algorithm
                     $error = WHEREWARE_STR_DB;
                     $result = $this->hpapi->dbCall (
                         'wwInventory',
