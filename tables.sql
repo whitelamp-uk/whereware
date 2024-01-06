@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS `ww_sku` (
   `sku` char(64) CHARACTER SET ascii NOT NULL,
   `bin` char(64) CHARACTER SET ascii NOT NULL COMMENT 'This field is the current bin but is not a constraint on move from/to bins',
   `additional_ref` char(64) CHARACTER SET ascii NOT NULL,
-  `name` varchar(64) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `notes` text COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `sku` (`sku`),
