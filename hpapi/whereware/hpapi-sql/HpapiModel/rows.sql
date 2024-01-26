@@ -320,6 +320,8 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware',	'wwUsers',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate'),
 ('Whereware', 'wwUsers',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
 ('Whereware',	'wwUsers',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
+('Whereware', 'wwUsers', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
+('Whereware', 'wwUsers', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware', 'wwUsers', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skuUserUpdate'),
 ('Whereware', 'wwUsers',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skus');
 

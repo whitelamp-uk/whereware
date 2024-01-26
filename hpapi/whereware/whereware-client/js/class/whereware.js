@@ -1102,6 +1102,11 @@ export class Whereware extends Generic {
         tbody = this.qs (table,'tbody');
         tbody.innerHTML = '';
         if (rtn) {
+            // Remove old errors
+            es = this.qsa (scn,':scope > div.error');
+            for (e of es) {
+                e.remove ();
+            }
             table.classList.add ('active');
             for (i=0;rtn[i];i++) {
                 tr = document.createElement ('tr');

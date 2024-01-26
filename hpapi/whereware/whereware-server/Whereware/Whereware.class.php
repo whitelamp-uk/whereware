@@ -392,6 +392,7 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
     }
 
     public function move ($obj) {
+/* Pick 'n' book stuff is now broken at least because of radical changes to wwBookingInsert() */
         /*
         For example:
         {
@@ -427,6 +428,7 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
         }
         $moves = [];
         // Many components moved to assembly location / component bin
+/* Pick 'n' book stuff is now broken at least because of radical changes to wwBookingInsert() */
         $result = $this->hpapi->dbCall (
             'wwBookingInsert'
         );
@@ -453,6 +455,7 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
         else {
             $to_bin = $sku->bin;
         }
+/* Pick 'n' book stuff is now broken at least because of radical changes to wwBookingInsert() */
         $result = $this->hpapi->dbCall (
             'wwBookingInsert'
         );
@@ -746,7 +749,19 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
                         if (!$booking_id) {
                             $error = WHEREWARE_STR_DB_INSERT;
                             $result = $this->hpapi->dbCall (
-                                'wwBookingInsert'
+                                'wwBookingInsert',
+                                $this->user()->user,
+                                $obj->project,
+                                'TASK-'.$obj->tasks[$i]->id,
+                                'outgoing',
+                                0,
+                                'Refresh',
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                ''
                             );
                             $booking_id = $result[0]['id'];
                         }
@@ -974,7 +989,19 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
         // Insert booking and rebook task
         try {
             $result = $this->hpapi->dbCall (
-                'wwBookingInsert'
+                'wwBookingInsert',
+                $this->user()->user,
+                $task->project,
+                'RETURNS-TASK-'.$returns->task_id,
+                'incoming',
+                0,
+                'Returned items',
+                null,
+                null,
+                null,
+                null,
+                null,
+                ''
             );
             $booking_id = $result[0]['id'];
             $result = $this->hpapi->dbCall (
