@@ -1361,13 +1361,13 @@ export class Whereware extends Generic {
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('additional_ref');
-                k.textContent = response.skus[i].additional_ref;
+                k.classList.add ('alt_code');
+                k.textContent = response.skus[i].alt_code;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('name');
-                k.textContent = response.skus[i].name;
+                k.classList.add ('description');
+                k.textContent = response.skus[i].description;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
@@ -1407,10 +1407,10 @@ export class Whereware extends Generic {
         return count;
     }
 
-    async skuUserUpdateRequest (sku,additional_ref,name,notes) {
+    async skuUserUpdateRequest (sku,alt_code,description,notes) {
         var request,response;
-        if (!additional_ref.trim() && !name.trim()) {
-            console.log ('skuUserUpdateRequest(): either an additional ref or a name must be given');
+        if (!alt_code.trim() && !description.trim()) {
+            console.log ('skuUserUpdateRequest(): either an alt code or a description must be given');
             return false;
         }
         request     = {
@@ -1422,8 +1422,8 @@ export class Whereware extends Generic {
                ,"method" : "skuUserUpdate"
                ,"arguments" : [
                     sku,
-                    additional_ref.trim (),
-                    name.trim (),
+                    alt_code.trim (),
+                    description.trim (),
                     notes.trim ()
                 ]
             }

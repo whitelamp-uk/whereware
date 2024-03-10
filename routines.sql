@@ -30,8 +30,8 @@ CREATE PROCEDURE `pick`(
 BEGIN
   SELECT
     CompositeSKU AS `Composite SKU`
-   ,`s`.`additional_ref` AS `Ref`
-   ,`s`.`name` AS `Product`
+   ,`s`.`alt_code` AS `Ref`
+   ,`s`.`description` AS `Product`
   FROM `ww_composite` AS `c`
   JOIN `ww_sku` AS `s`
     ON `s`.`sku`=`c`.`sku`

@@ -239,7 +239,7 @@ INSERT IGNORE INTO `hpapi_sprarg` (`model`, `spr`, `argument`, `name`, `empty_al
 ('Whereware', 'wwProjectSkuInsert',  1,  'Project code', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  2,  'SKU', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  3,  'Bin code', 1,  'varchar-64'),
-('Whereware', 'wwProjectSkuInsert',  4,  'SKU name', 1,  'varchar-255'),
+('Whereware', 'wwProjectSkuInsert',  4,  'SKU description', 1,  'varchar-255'),
 ('Whereware', 'wwProjectSkuInsert',  5,  'Is composite', 0,  'db-boolean'),
 ('Whereware',	'wwProjects',	1,	'Project code (optional)',	1,	'varchar-64'),
 ('Whereware', 'wwSkuInsert',  1,  'Sku', 0,  'varchar-64'),

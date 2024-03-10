@@ -87,6 +87,7 @@ class Whereware {
                 {
                     quantity     : 4,
                     sku  : "NEW-MARK-00000000010",
+                    description  : "A new thing",
                 },
                 ...
             ]
@@ -653,8 +654,8 @@ class Whereware {
         skus : [
             {
                 sku : THINGY-1,
-                name : Thingy One,
-                additional_ref : SUPPLIER-THINGY,
+                alt_code : SUPPLIER-THINGY,
+                description : Thingy One,
                 bin : B007,
                 notes : Heavy thingy
             },
@@ -682,7 +683,7 @@ class Whereware {
 ('Whereware', 'wwProjectSkuInsert',  1,  'Project code', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  2,  'SKU', 0,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  3,  'Bin code', 1,  'varchar-64'),
-('Whereware', 'wwProjectSkuInsert',  4,  'SKU name', 1,  'varchar-64'),
+('Whereware', 'wwProjectSkuInsert',  4,  'SKU description', 1,  'varchar-64'),
 ('Whereware', 'wwProjectSkuInsert',  5,  'Is composite', 0,  'db-boolean'),
 
 */
@@ -844,8 +845,8 @@ class Whereware {
                 }
                 $sku                            = new \stdClass ();
                 $sku->sku                       = $row['sku'];
-                $sku->name                      = $row['sku_name'];
-                $sku->additional_ref            = $row['additional_ref'];
+                $sku->description               = $row['sku_description'];
+                $sku->alt_code                  = $row['sku_alt_code'];
                 $sku->bin                       = $row['bin'];
                 $sku->notes                     = $row['sku_notes'];
                 $ps[$row['project']]->skus[]    = $sku;
@@ -1160,7 +1161,7 @@ class Whereware {
         return false;
     }
 
-    public function skuUserUpdate ($sku,$additional_ref,$name,$notes) {
+    public function skuUserUpdate ($sku,$alt_code,$description,$notes) {
         $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
         $notes = trim ($notes);
         if ($notes) {
@@ -1184,9 +1185,9 @@ class Whereware {
                     'wwSkuUpdate',
                     $sku,
                     $old['bin'],
-                    $additional_ref,
+                    $alt_code,
                     $old['unit_price'],
-                    $name,
+                    $description,
                     $old['notes'].$notes
                 );
             }
@@ -1248,26 +1249,26 @@ class Whereware {
                         }
                     }
                 }
-                if (!$sku_group_id || ($sku_group_id && ($user_sku->additional_ref || $user_sku->name))) {
+                if (!$sku_group_id || ($sku_group_id && ($user_sku->alt_code || $user_sku->description))) {
                     // No user SKU or last one already used (has either an additional ref or a name)
                     $sku_group_id++;
                     $sku_group_id = str_pad ("$sku_group_id",WHEREWARE_SKU_TEMP_ID_LENGTH,'0',STR_PAD_LEFT);
                     $new = new \stdClass ();
                     $new->sku = $sku_group.'-'.$sku_group_id;
                     $new->bin = '';
-                    $new->additional_ref = '';
+                    $new->alt_code = '';
                     $new->unit_price = 0;
-                    $new->name = '';
+                    $new->description = '';
                     $new->notes = '';
-                    // Neither an additional_ref nor a name therefore unused
+                    // Neither an alt_code nor a description therefore unused
                     try {
                         $result = $this->hpapi->dbCall (
                             'wwSkuInsert',
                             $new->sku,
                             $new->bin,
-                            $new->additional_ref,
+                            $new->alt_code,
                             $new->unit_price,
-                            $new->name,
+                            $new->description,
                             $new->notes
                         );
                     }

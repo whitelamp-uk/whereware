@@ -417,7 +417,7 @@ BEGIN
   ;
   SET NEW.`bin` = UPPER(NEW.`bin`)
   ;
-  SET NEW.`additional_ref` = UPPER(NEW.`additional_ref`)
+  SET NEW.`alt_code` = UPPER(NEW.`alt_code`)
   ;
 END$$
 
@@ -430,7 +430,7 @@ BEGIN
   ;
   SET NEW.`bin` = UPPER(NEW.`bin`)
   ;
-  SET NEW.`additional_ref` = UPPER(NEW.`additional_ref`)
+  SET NEW.`alt_code` = UPPER(NEW.`alt_code`)
   ;
 END$$
 

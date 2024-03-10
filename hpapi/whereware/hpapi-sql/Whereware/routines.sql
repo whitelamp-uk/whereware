@@ -25,13 +25,13 @@ CREATE PROCEDURE `wwBlueprint`(
 BEGIN
   SELECT
     `c`.`sku`
-   ,`c`.`additional_ref`
-   ,`c`.`name` AS `sku_name`
+   ,`c`.`alt_code`
+   ,`c`.`description`
    ,`g`.`quantity`
    ,`g`.`generic`
    ,`g`.`name`
    ,GROUP_CONCAT(
-      CONCAT_WS(':',`v`.`quantity`,`v`.`sku`,`s`.`additional_ref`,`s`.`name`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
+      CONCAT_WS(':',`v`.`quantity`,`v`.`sku`,`s`.`alt_code`,`s`.`description`) ORDER BY `v`.`give_preference` DESC SEPARATOR ','
     ) AS `options_preferred_first`
   FROM `ww_generic` AS `g`
   JOIN `ww_variant` AS `v`
@@ -159,15 +159,15 @@ BEGIN
    ,`g`.`sku` LIKE CONCAT(likeString,'%') AS `matches_on_sku_left`
    ,`g`.`generic` LIKE CONCAT(likeString,'%') AS `matches_on_generic_left`
    ,`g`.`name` LIKE CONCAT(likeString,'%') AS `matches_on_name_left`
-   ,`s`.`additional_ref` LIKE CONCAT(likeString,'%') AS `matches_on_additional_ref_left`
-   ,`s`.`name` LIKE CONCAT(likeString,'%') AS `matches_on_skuname_left`
+   ,`s`.`alt_code` LIKE CONCAT(likeString,'%') AS `matches_on_alt_code_left`
+   ,`s`.`description` LIKE CONCAT(likeString,'%') AS `matches_on_description_left`
    ,`g`.`sku` LIKE CONCAT('%',likeString,'%') AS `matches_on_sku`
    ,`g`.`generic` LIKE CONCAT('%',likeString,'%') AS `matches_on_generic`
    ,`g`.`name` LIKE CONCAT('%',likeString,'%') AS `matches_on_name`
-   ,`s`.`additional_ref` LIKE CONCAT('%',likeString,'%') AS `matches_on_additional_ref`
-   ,`s`.`name` LIKE CONCAT('%',likeString,'%') AS `matches_on_skuname`
-   ,CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',likeString,'%') AS `matches`
-   ,CONCAT(`s`.`name`,`s`.`additional_ref`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%') AS `matches_reverse`
+   ,`s`.`alt_code` LIKE CONCAT('%',likeString,'%') AS `matches_on_alt_code`
+   ,`s`.`description` LIKE CONCAT('%',likeString,'%') AS `matches_on_description`
+   ,CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`alt_code`,`s`.`description`) LIKE CONCAT('%',likeString,'%') AS `matches`
+   ,CONCAT(`s`.`description`,`s`.`alt_code`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%') AS `matches_reverse`
   FROM `ww_generic` AS `g`
   JOIN `ww_composite` AS `c`
     ON `c`.`sku`=`g`.`sku`
@@ -175,19 +175,19 @@ BEGIN
     ON `s`.`sku`=`c`.`sku`
   WHERE likeString IS NULL
      OR likeString=''
-     OR CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',likeString,'%')
-     OR CONCAT(`s`.`name`,`s`.`additional_ref`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%')
+     OR CONCAT(`g`.`sku`,`g`.`generic`,`g`.`name`,`s`.`alt_code`,`s`.`description`) LIKE CONCAT('%',likeString,'%')
+     OR CONCAT(`s`.`description`,`s`.`alt_code`,`g`.`name`,`g`.`generic`,`g`.`sku`) LIKE CONCAT('%',likeString,'%')
   ORDER BY
     `matches_on_sku_left` DESC
    ,`matches_on_generic_left` DESC
    ,`matches_on_name_left` DESC
-   ,`matches_on_additional_ref_left` DESC
-   ,`matches_on_skuname_left` DESC
+   ,`matches_on_alt_code_left` DESC
+   ,`matches_on_description_left` DESC
    ,`matches_on_sku` DESC
    ,`matches_on_generic` DESC
    ,`matches_on_name` DESC
-   ,`matches_on_additional_ref` DESC
-   ,`matches_on_skuname` DESC
+   ,`matches_on_alt_code` DESC
+   ,`matches_on_description` DESC
    ,`matches` DESC
    ,`matches_reverse` DESC
    ,`g`.`generic`
@@ -346,8 +346,8 @@ BEGIN
     ON `i`.`location`=inventoryLocation
    AND `i`.`sku`=`s`.`sku`
   SET
-    `i`.`sku_additional_ref`=`s`.`additional_ref`
-   ,`i`.`sku_name`=`s`.`name`
+    `i`.`sku_alt_code`=`s`.`alt_code`
+   ,`i`.`sku_description`=`s`.`description`
   ;
   SELECT
     *
@@ -608,9 +608,9 @@ BEGIN
    ,`p`.`notes`
    ,`s`.`sku`
    ,(`s`.`hidden` OR `ps`.`hidden`) AS `sku_hidden`
-   ,`s`.`additional_ref`
+   ,`s`.`alt_code` AS `sku_alt_code`
    ,`s`.`bin`
-   ,`s`.`name` AS `sku_name`
+   ,`s`.`description` AS `sku_description`
    ,`s`.`notes` AS `sku_notes`
   FROM `ww_project` AS `p`
   LEFT JOIN `ww_project_sku` AS `ps`
@@ -629,9 +629,9 @@ DROP PROCEDURE IF EXISTS `wwSkuInsert`$$
 CREATE PROCEDURE `wwSkuInsert`(
    IN `newSku` char(64)
   ,IN `newBin` char(64)
-  ,IN `newAdditionalRef` char(64)
+  ,IN `newAltCode` char(64)
   ,IN `newUnitPrice` decimal(8,2) unsigned
-  ,IN `newName` varchar(64)
+  ,IN `newDescription` varchar(64)
   ,IN `newNotes` text
 )
 BEGIN
@@ -639,9 +639,9 @@ BEGIN
   SET
     `sku`=newSku
    ,`bin`=newBin
-   ,`additional_ref`=newAdditionalRef
+   ,`alt_code`=newAltCode
    ,`unit_price`=newUnitPrice
-   ,`name`=newName
+   ,`description`=newDescription
    ,`notes`=newNotes
   ;
   SELECT LAST_INSERT_ID() AS `id`
@@ -654,18 +654,18 @@ DROP PROCEDURE IF EXISTS `wwSkuUpdate`$$
 CREATE PROCEDURE `wwSkuUpdate`(
    IN `oldSku` char(64)
   ,IN `newBin` char(64)
-  ,IN `newAdditionalRef` char(64)
+  ,IN `newAltCode` char(64)
   ,IN `newUnitPrice` decimal(8,2) unsigned
-  ,IN `newName` varchar(64)
+  ,IN `newDescription` varchar(64)
   ,IN `newNotes` text
 )
 BEGIN
   UPDATE `ww_sku`
   SET
     `bin`=newBin
-   ,`additional_ref`=newAdditionalRef
+   ,`alt_code`=newAltCode
    ,`unit_price`=newUnitPrice
-   ,`name`=newName
+   ,`description`=newDescription
    ,`notes`=newNotes
   WHERE `sku`=oldSku
   ;
@@ -689,20 +689,20 @@ BEGIN
    ,`s`.`sku`
    ,`c`.`sku` IS NOT NULL AS `is_composite`
    ,`s`.`bin` AS `bin`
-   ,`s`.`additional_ref`
+   ,`s`.`alt_code`
    ,`s`.`unit_price`
-   ,`s`.`name`
+   ,`s`.`description`
    ,`s`.`notes`
    ,`m`.`sku` IS NOT NULL AS `moved`
    ,`s`.`sku`=likeString AS `matches_exactly_on_sku`
    ,`s`.`sku` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_sku_left`
-   ,`s`.`additional_ref` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref_left`
-   ,`s`.`name` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_name_left`
+   ,`s`.`alt_code` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_alt_code_left`
+   ,`s`.`description` LIKE CONCAT(TRIM('%' FROM likeString),'%') AS `matches_on_description_left`
    ,`s`.`sku` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_sku`
-   ,`s`.`additional_ref` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_additional_ref`
-   ,`s`.`name` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_name`
-   ,CONCAT(`s`.`sku`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches`
-   ,CONCAT(`s`.`name`,`s`.`additional_ref`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_reverse`
+   ,`s`.`alt_code` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_alt_code`
+   ,`s`.`description` LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_on_description`
+   ,CONCAT(`s`.`sku`,`s`.`alt_code`,`s`.`description`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches`
+   ,CONCAT(`s`.`description`,`s`.`alt_code`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%') AS `matches_reverse`
    ,SUBSTRING_INDEX(`s`.`sku`,'-',2) AS `sku_group`
    ,1*SUBSTR(`s`.`sku`,LENGTH(SUBSTRING_INDEX(`s`.`sku`,'-',2))+2) AS `sku_group_id`
    ,IF(
@@ -756,8 +756,8 @@ BEGIN
   WHERE (
        likeString IS NULL
     OR likeString=''
-    OR CONCAT(`s`.`sku`,`s`.`additional_ref`,`s`.`name`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
-    OR CONCAT(`s`.`name`,`s`.`additional_ref`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
+    OR CONCAT(`s`.`sku`,`s`.`alt_code`,`s`.`description`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
+    OR CONCAT(`s`.`description`,`s`.`alt_code`,`s`.`sku`) LIKE CONCAT('%',TRIM('%' FROM likeString),'%')
   )
     AND (
          includeComponents>0
@@ -770,11 +770,11 @@ BEGIN
     ORDER BY
       `matches_exactly_on_sku` DESC
      ,`matches_on_sku_left` DESC
-     ,`matches_on_additional_ref_left` DESC
-     ,`matches_on_name_left` DESC
+     ,`matches_on_alt_code_left` DESC
+     ,`matches_on_description_left` DESC
      ,`matches_on_sku` DESC
-     ,`matches_on_additional_ref` DESC
-     ,`matches_on_name_left` DESC
+     ,`matches_on_alt_code` DESC
+     ,`matches_on_description` DESC
      ,`matches` DESC
      ,`matches_reverse` DESC
      ,`s`.`sku`

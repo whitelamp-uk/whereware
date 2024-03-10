@@ -36,12 +36,12 @@ class Blueprint extends Whereware {
         }
         $blueprint = new \stdClass ();
         $blueprint->sku = $sku;
-        $blueprint->additional_ref = '';
-        $blueprint->name = '';
+        $blueprint->alt_code = '';
+        $blueprint->description = '';
         $blueprint->generics = [];
         foreach ($result as $item) {
-            $blueprint->additional_ref = $item->additional_ref;
-            $blueprint->name = $item->sku_name;
+            $blueprint->alt_code = $item->alt_code;
+            $blueprint->description = $item->sku_description;
             $item->options = explode (',',$item->options_preferred_first);
             unset ($item->options_preferred_first);
             $item->components = [];
@@ -50,8 +50,8 @@ class Blueprint extends Whereware {
                 $o = explode (':',$o);
                 $c->quantity = $o[0];
                 $c->sku = $o[1];
-                $c->additional_ref = $o[2];
-                $c->name = $o[3];
+                $c->alt_code = $o[2];
+                $c->description = $o[3];
                 try {
                     $rows = $this->hpapi->dbCall (
                         'wwInventory',
