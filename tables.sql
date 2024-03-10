@@ -146,6 +146,7 @@ CREATE TABLE IF NOT EXISTS `ww_move` (
 
 
 CREATE TABLE IF NOT EXISTS `ww_movelog` (
+  `log_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `created` timestamp NOT NULL DEFAULT current_timestamp(),
   `move_id` int(11) unsigned NOT NULL,
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
@@ -164,8 +165,10 @@ CREATE TABLE IF NOT EXISTS `ww_movelog` (
   `from_bin` char(64) CHARACTER SET ascii NOT NULL,
   `to_location` char(64) CHARACTER SET ascii NOT NULL,
   `to_bin` char(64) CHARACTER SET ascii NOT NULL,
-  PRIMARY KEY (`created`,`move_id`),
+  PRIMARY KEY (`log_id`),
+  KEY `ww_movelog_created` (`created`),
   KEY `ww_movelog_move` (`move_id`),
+  KEY `ww_movelog_created_move` (`created`,`move_id`),
   CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
