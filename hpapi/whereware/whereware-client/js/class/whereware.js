@@ -1030,21 +1030,6 @@ export class Whereware extends Generic {
         }
     }
 
-    returnsOptions (teamSelect,bookButton,closeButtonSkus,closeButtonBooked) {
-        var i,o;
-        for (i=0;this.data.whereware.teams[i];i++) {
-            o = document.createElement ('option');
-            o.value = this.data.whereware.teams[i].team;
-            o.innerText = this.data.whereware.teams[i].name;
-            teamSelect.appendChild (o);
-        }
-        teamSelect.addEventListener ('change',this.returnsTasks.bind(this));
-        bookButton.addEventListener ('click',this.returnsBook.bind(this));
-        closeButtonSkus.addEventListener ('click',this.returnsClose.bind(this));
-        closeButtonBooked.addEventListener ('click',this.returnsClose.bind(this));
-        this.parameters.wherewareTeamSelect  = teamSelect;
-    }
-
     async returnsBook (evt) {
         var bin,div,e,es,i,locn,msg,qty,row,rows,rtn,returns,scn,scn2,sku,table,tbody,td,tid,tr;
         table = evt.currentTarget.closest ('table');
@@ -1163,6 +1148,21 @@ export class Whereware extends Generic {
 
     async returnsClose (evt) {
         evt.currentTarget.parentElement.classList.remove ('active');
+    }
+
+    returnsOptions (teamSelect,bookButton,closeButtonSkus,closeButtonBooked) {
+        var i,o;
+        for (i=0;this.data.whereware.teams[i];i++) {
+            o = document.createElement ('option');
+            o.value = this.data.whereware.teams[i].team;
+            o.innerText = this.data.whereware.teams[i].name;
+            teamSelect.appendChild (o);
+        }
+        teamSelect.addEventListener ('change',this.returnsTasks.bind(this));
+        bookButton.addEventListener ('click',this.returnsBook.bind(this));
+        closeButtonSkus.addEventListener ('click',this.returnsClose.bind(this));
+        closeButtonBooked.addEventListener ('click',this.returnsClose.bind(this));
+        this.parameters.wherewareTeamSelect  = teamSelect;
     }
 
     async returnsRequest (returns) {
