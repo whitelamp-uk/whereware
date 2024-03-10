@@ -277,8 +277,6 @@ class Whereware {
                 return false;
             }
         }
-// TODO
-sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
         try {
             $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
@@ -801,8 +799,6 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
             }
         }
         try {
-// TODO
-sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
             $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
                 $result = $this->hpapi->dbCall (
@@ -1084,8 +1080,6 @@ sleep (1); // Hack to prevent ww_movelog duplicate primary key after wwMoveInser
                 $task->team
             ];
         }
-// TODO
-sleep (1); // Quick hack to prevent ww_movelog duplicate primary key after wwMoveInsert() above
         try {
             $error = WHEREWARE_STR_DB_UPDATE;
             foreach ($assigns as $a) {
