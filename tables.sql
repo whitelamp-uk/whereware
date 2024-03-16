@@ -168,8 +168,7 @@ CREATE TABLE IF NOT EXISTS `ww_movelog` (
   PRIMARY KEY (`log_id`),
   KEY `ww_movelog_created` (`created`),
   KEY `ww_movelog_move` (`move_id`),
-  KEY `ww_movelog_created_move` (`created`,`move_id`),
-  CONSTRAINT `ww_movelog_move` FOREIGN KEY (`move_id`) REFERENCES `ww_move` (`id`)
+  KEY `ww_movelog_created_move` (`created`,`move_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
