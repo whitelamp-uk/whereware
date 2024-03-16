@@ -1361,13 +1361,13 @@ export class Whereware extends Generic {
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('alt_code');
-                k.textContent = response.skus[i].alt_code;
+                k.classList.add ('description');
+                k.textContent = response.skus[i].description;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
-                k.classList.add ('description');
-                k.textContent = response.skus[i].description;
+                k.classList.add ('alt_code');
+                k.textContent = response.skus[i].alt_code;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
