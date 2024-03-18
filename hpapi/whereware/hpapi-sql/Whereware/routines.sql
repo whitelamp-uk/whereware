@@ -350,14 +350,17 @@ BEGIN
    ,`i`.`sku_description`=`s`.`description`
   ;
   SELECT
-    *
-   ,`sku`=Sku_starts_with_or_empty_for_all as `matches`
-  FROM `ww_recent_inventory`
-  WHERE `location`=inventoryLocation
+    `i`.*
+   ,`i`.`sku`=Sku_starts_with_or_empty_for_all as `matches`
+   ,IFNULL(`s`.`bin`=`i`.`bin`,0) AS `is_home_bin`
+  FROM `ww_recent_inventory` AS `i`
+  LEFT JOIN `ww_sku` AS `s`
+         ON `s`.`sku`=`i`.`sku`
+  WHERE `i`.`location`=inventoryLocation
     AND (
         Sku_starts_with_or_empty_for_all IS NULL
      OR Sku_starts_with_or_empty_for_all=''
-     OR `sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
+     OR `i`.`sku` LIKE CONCAT(Sku_starts_with_or_empty_for_all,'%')
   )
   ORDER BY `matches` DESC,`sku`,`available` DESC
   ;

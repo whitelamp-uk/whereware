@@ -28,13 +28,20 @@ class Whereware {
     }
 
     public function binSelect ($qty,$sku,$results) {
-        $bin                = ''; // the "anywhere" bin
         $max                = 0;
         $matches            = [];
         foreach ($results as $r) {
             // wwInventory() results are from a LIKE search
             if ($r['sku']==$sku) {
                 // Result exactly matches this SKU
+                if ($r['is_home_bin'] && WHEREWARE_BIN_PRIORITY_HOME) {
+                    // This is the home bin for this SKU
+                    if ($r['available']>=$qty) {
+                        // Home bin has sufficient stock
+                        return $r['bin'];
+                    }
+                }
+                // Find best availability
                 $matches[]  = $r;
                 if ($max<$r['available']) {
                     $max    = $r['available'];
@@ -42,7 +49,6 @@ class Whereware {
             }
         }
         if (count($matches)) {
-            // If $max<=$qty, the MINSA model is pointless - we want the bin with the mostest in this case
             if ($max>$qty && WHEREWARE_BIN_PRIORITY=='MINSA') {
                 // Minimum Sufficient Availability model - MINSA
                 $results        = [];
@@ -54,17 +60,15 @@ class Whereware {
                 ksort ($results);
                 foreach ($results as $r) {
                     if ($r['available']>=$qty) {
-                        $bin    = $r['bin'];
-                        break;
+                        return $r['bin'];
                     }
                 }
             }
-            else {
-                // Maximum Availability model - MAXA
-                $bin = $matches[0]['bin'];
-            }
+            // If $max<=$qty, the MINSA model is pointless - we want the bin with the mostest in this case
+            // Maximum Availability model - MAXA
+            return $matches[0]['bin'];
         }
-        return $bin;
+        return ''; // the "anywhere" (or nowhere!) bin;
     }
 
     public function book ($booking) {

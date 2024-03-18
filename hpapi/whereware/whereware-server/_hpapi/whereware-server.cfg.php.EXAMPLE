@@ -5,8 +5,9 @@
 define ( 'WHEREWARE_TEMPLATE_GLOB',             './template/*.hbs'      );
 define ( 'WHEREWARE_TOKEN_LIFE_MINS',           10                      );
 define ( 'WHEREWARE_VERIFY_TIME',               300                     );
-define ( 'WHEREWARE_BIN_PRIORITY',              'MINSA' ); // Minimum Sufficient Availability
-//define ( 'WHEREWARE_BIN_PRIORITY',              'MAXA' ); // Maximum Availability
+define ( 'WHEREWARE_BIN_PRIORITY_HOME',         true        ); // Prioritise home bin (if sufficient availability)
+define ( 'WHEREWARE_BIN_PRIORITY',              'MINSA'     ); // Minimum Sufficient Availability
+//define ( 'WHEREWARE_BIN_PRIORITY',              'MAXA'      ); // Maximum Availability
 
 
 // Database
