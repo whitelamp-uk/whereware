@@ -381,6 +381,7 @@ BEGIN
     OR startsWith=''
     OR `location` LIKE CONCAT(startsWith,'%')
   )
+  ORDER BY `location`=startsWith DESC,`location`
   ;
 END$$
 
@@ -849,6 +850,8 @@ CREATE PROCEDURE `wwTaskInsert`(
   ,IN `rebooksTaskId` int(11) unsigned
 )
 BEGIN
+  /*
+  -- Removed because the locations should exist before the task may be inserted
   INSERT INTO `ww_location`
   SET
     `updated`=NOW()
@@ -858,6 +861,7 @@ BEGIN
   ON DUPLICATE KEY UPDATE
     `location`=locationCode
   ;
+  */
   INSERT INTO `ww_task`
   SET
     `updated`=NOW()
