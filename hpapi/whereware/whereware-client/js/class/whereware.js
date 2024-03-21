@@ -510,7 +510,7 @@ export class Whereware extends Generic {
     }
 
     async projectImport (data) {
-        var btn,c,cols,div,e,errors,f,html,i,obj,p,q,r,ppp,rows,section,sku,skus,task,tasks,td,th,tr;
+        var btn,c,cols,div,e,errors,f,html,i,j,obj,p,q,r,ppp,rows,section,sku,skus,task,tasks,td,th,tr;
         section = document.getElementById ('projects-import');
         e = [];
         obj = {};
@@ -538,9 +538,13 @@ export class Whereware extends Generic {
         }
         if (data[1]) {
             obj.locationPrefix = data[1][1];
+            obj.weekNumber = data[1][3];
         }
         if (!obj.locationPrefix) {
             e.push ('No location code prefix was given in cell B2');
+        }
+        if (!obj.weekNumber) {
+            e.push ('No week number was given in cell D2');
         }
         if (data[2]) {
             obj.teamPrefix = data[2][1];
@@ -548,6 +552,7 @@ export class Whereware extends Generic {
         if (!obj.teamPrefix) {
             e.push ('No team code prefix was given in cell B3');
         }
+        obj.orderRef = (new Date().getFullYear()) + '-' + 'WK-' + obj.weekNumber.toString().padStart(2, '0') + '/' + obj.project;
         obj.skus = [];
         for (r=0;r in data;r++) {
             for (c=0;c in data[r];c++) {
@@ -561,19 +566,20 @@ export class Whereware extends Generic {
         }
         if (data[3]) {
             for (c=5;c in data[3];c++) {
-                sku = { sku : data[3][c].replace(' ',''), composite : false, name : data[0][c], bin : data[1][c], column: c };
-                if (data[2][c]!='' || data[2][c]!='0') {
-                    sku.composite = true;
+                sku = this.find (obj.skus,'sku',data[3][c].replace(' ',''),false);
+                if (sku) {
+                   sku.columns.push (c);
                 }
-                f = this.find (obj.skus,'sku',sku.sku,false);
-                if (f) {
-                    e.push ('SKU '+sku.sku+' is not unique');
+                else {
+                    obj.skus.push ({ sku : data[3][c].replace(' ',''), columns: [c] });
                 }
-                obj.skus.push (sku);
             }
         }
         else {
-            e.push ('Bad format - missing row 4 (SKUs)');
+            e.push ('Bad format - missing row 4 (no SKUs found)');
+        }
+        if (!data[4]) {
+            e.push ('Bad format - missing row 5 (no tasks found)');
         }
         obj.tasks = [];
         for (r=4;r in data;r++) {
@@ -596,20 +602,15 @@ export class Whereware extends Generic {
                     e.push ('Invalid date format in cell E'+(r+1));
                 }
             }
-            for (c=5;c in data[r];c++) {
-                if (!data[r][c]) {
-                    data[r][c] = 0;
-                }
-                if (!(''+data[r][c]).match(/^[0-9]+$/)) {
-                    e.push ('Invalid quantity in cell '+String.fromCharCode(c+65)+(r+1));
-                }
-                else if (data[r][c]>0) {
-                    sku = this.find (obj.skus,'column',c,false);
-                    if (!sku || !sku.sku) {
-                        e.push ('Missing SKU in cell '+String.fromCharCode(c+65)+'4 for quantity in cell '+String.fromCharCode(c+65)+(r+1));
+            for (i=0;i in obj.skus;i++) {
+                q = 0;
+                for (j=0;j in obj.skus[i].columns;j++) {
+                    if (data[r][obj.skus[i].columns[j]]>0) {
+                        q += data[r][obj.skus[i].columns[j]];
                     }
-                    sku.quantity = data[r][c];
-                    task.skus.push (sku);
+                }
+                if (q>0) {
+                    task.skus.push ( {sku: obj.skus[i].sku, quantity: q} );
                 }
             }
             obj.tasks.push (task);
@@ -619,6 +620,7 @@ export class Whereware extends Generic {
         cols = document.getElementById ('projects-import-columns');
         cols.innerHTML = '';
         rows = document.getElementById ('projects-import-rows');
+        rows.dataset.orderref = obj.orderRef;
         rows.innerHTML = '';
         errors = this.qsa (this.restricted,'#projects-import div.error');
         for (div of errors) {
@@ -657,18 +659,9 @@ export class Whereware extends Generic {
             cols.appendChild (th);
             for (c=0;c in obj.skus;c++) {
                 html = obj.skus[c].sku;
-                if (obj.skus[c].composite) {
-                    html += ' <i>[composite]</i>';
-                }
-                html += '<br/>'+obj.skus[c].name;
                 th = document.createElement ('th');
                 th.dataset.skus = '1';
                 th.dataset.sku = obj.skus[c].sku;
-                if (obj.skus[c].composite) {
-                    th.dataset.composite = '1';
-                }
-                th.dataset.bin = obj.skus[c].bin;
-                th.dataset.name = obj.skus[c].name;
                 th.innerHTML = html;
                 cols.appendChild (th);
             }
@@ -686,6 +679,7 @@ export class Whereware extends Generic {
                     if (obj.tasks[r].status=='N') {
                         obj.tasks[r].skus = skus;
                     }
+                    obj.tasks[r].name = obj.tasks[r].location_name;
                     obj.tasks[r].postcode = obj.tasks[r].location_postcode;
                     td.innerText = '#' + task.id;
                 }
@@ -798,18 +792,9 @@ export class Whereware extends Generic {
         skus = this.qsa (table,'[data-skus]');
         c = 0;
         for (sku of skus) {
-            if (sku.dataset.composite) {
-                c = 1;
-            }
-            obj.skus.push (
-                {
-                    sku : sku.dataset.sku,
-                    composite : c,
-                    name : sku.dataset.name,
-                    bin : sku.dataset.bin
-                }
-            );
+            obj.skus.push (sku.dataset.sku);
         }
+        obj.order_ref = this.qs(table,'#projects-import-rows').dataset.orderref;
         tasks = this.qsa (table,'[data-tasks]');
         for (task of tasks) {
             i = this.qs(task,'input');
@@ -944,7 +929,13 @@ export class Whereware extends Generic {
             if (err[1]=='403') {
                 err = 'You do not have permission to execute this process';
             }
+            else if (err[1]=='400') {
+                err.shift ();
+                err.shift ();
+                err = err.join (' ');
+            }
             else {
+                console.error (err.join(' '));
                 err = 'Booking process failed to complete';
             }
             throw new Error (err);

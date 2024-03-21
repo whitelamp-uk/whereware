@@ -18,6 +18,8 @@ define ( 'WHEREWARE_STR_QTY_INVALID',           '610 400 Quantity is not valid' 
 define ( 'WHEREWARE_STR_QTY_INSUFFICIENT',      '611 400 Low stock'                         );
 define ( 'WHEREWARE_STR_PROJECT',               '612 400 Failed to identify project'        );
 define ( 'WHEREWARE_STR_RESULTS_LIMIT',         '613 400 Too many results'                  );
+define ( 'WHEREWARE_STR_LOCATION_MISSING',      '614 400 Location could not be found'       );
+define ( 'WHEREWARE_STR_SKU_MISSING',           '615 400 SKU could not be found'            );
 define ( 'WHEREWARE_STR_PASSWORD_DICTIONARY',   'Contains common words, names or patterns'  );
 define ( 'WHEREWARE_STR_PASSWORD_CHARACTERS',   'Not enough different characters'           );
 define ( 'WHEREWARE_STR_PASSWORD_OTHER',        'Too easy to crack'                         );

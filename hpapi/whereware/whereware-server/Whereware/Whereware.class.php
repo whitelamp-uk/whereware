@@ -653,17 +653,11 @@ class Whereware {
 /*
     {
         project : 123456,
-        name : Some project,
+        order_ref : 2024-WK-01/2024002,
         notes : Some notes,
         skus : [
-            {
-                sku : THINGY-1,
-                alt_code : SUPPLIER-THINGY,
-                description : Thingy One,
-                bin : B007,
-                notes : Heavy thingy
-            },
-            ....
+            THINGY-1,
+            ...
         ],
         tasks [
             {
@@ -693,9 +687,30 @@ class Whereware {
 */
         $booking_id = null;
         $assigns = [];
-        $skus_assoc = [];
+        $locations = [];
         foreach ($obj->skus as $sku) {
-            $skus_assoc[$sku->sku] = $sku;
+            try {
+                $results = $this->hpapi->dbCall (
+                    'wwSkus',
+                    $sku,
+                    1,
+                    1,
+                    1,
+                    '',
+                    ''
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+            if (!count($results)) {
+                throw new \Exception (WHEREWARE_STR_SKU_MISSING.': '.$sku);
+                return false;
+            }
+            /*
+            // This is probably obsolete; if not, the SKU object is now a simple array so...
             try {
                 $result = $this->hpapi->dbCall (
                     'wwProjectSkuInsert',
@@ -709,6 +724,29 @@ class Whereware {
             catch (\Exception $e) {
                 $this->hpapi->diagnostic ($e->getMessage());
                 throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                return false;
+            }
+            */
+        }
+        foreach ($obj->tasks as $task) {
+            if (!in_array($task->location,$locations)) {
+                $locations[] = $task->location;
+            }
+        }
+        foreach ($locations as $locationLike) {
+            try {
+                $result = $this->hpapi->dbCall (
+                    'wwLocations',
+                    $locationLike
+                );
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+            if (!count($result) || $result[0]['location']!=$locationLike) {
+                throw new \Exception (WHEREWARE_STR_LOCATION_MISSING.': '.$locationLike);
                 return false;
             }
         }
@@ -768,21 +806,53 @@ class Whereware {
                             );
                             $booking_id = $result[0]['id'];
                         }
-                        // Insert move
+                        // Find the best component bin
+                        $result = $this->hpapi->dbCall (
+                            'wwInventory',
+                            WHEREWARE_LOCATION_COMPONENT,
+                            $sku->sku
+                        );
+                        $bin = $this->binSelect ($sku->quantity,$sku->sku,$result);
+                        // Insert move from components to out
+                        $error = WHEREWARE_STR_DB_INSERT;
                         $result = $this->hpapi->dbCall (
                             'wwMoveInsert',
                             $this->hpapi->email,
-                            '',
+                            $obj->order_ref,
                             $booking_id,
-                            'P',
+                            'R',
                             $sku->quantity,
                             $sku->sku,
-                            WHEREWARE_LOCATION_ASSEMBLED,
-                            $skus_assoc[$sku->sku]->bin,
+                            WHEREWARE_LOCATION_COMPONENT,
+                            $bin,
+                            WHEREWARE_LOCATION_OUT,
+                            ''
+                        );
+                        $move_id = $result[0]['id'];
+                        // Assign move
+                        $assigns[] = [
+                            'wwMoveAssign',
+                            $this->hpapi->email,
+                            $move_id,
+                            $obj->project,
+                            $task->id,
+                            $task->team
+                        ];
+                        // Insert move from out to destination
+                        $error = WHEREWARE_STR_DB_INSERT;
+                        $result = $this->hpapi->dbCall (
+                            'wwMoveInsert',
+                            $this->hpapi->email,
+                            $obj->order_ref,
+                            $booking_id,
+                            'R',
+                            $sku->quantity,
+                            $sku->sku,
+                            WHEREWARE_LOCATION_OUT,
+                            '',
                             $task->location,
                             ''
                         );
-                        $error = WHEREWARE_STR_DB;
                         $move_id = $result[0]['id'];
                         // Assign move
                         $error = WHEREWARE_STR_DB_INSERT;
