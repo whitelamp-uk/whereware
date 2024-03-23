@@ -1009,14 +1009,16 @@ BEGIN
     ON `lc`.`location`=`tk`.`location`
   LEFT JOIN (
     SELECT
-      `task_id`
-     ,MIN(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_min`
-     ,MAX(1*(`status`='R')+2*(`status`='T')+3*(`status`='F')) AS `status_max`
+      `mvm`.`task_id`
+     ,MIN(1*(`mvm`.`status`='R')+2*(`mvm`.`status`='T')+3*(`mvm`.`status`='F')) AS `status_min`
+     ,MAX(1*(`mvm`.`status`='R')+2*(`mvm`.`status`='T')+3*(`mvm`.`status`='F')) AS `status_max`
      ,GROUP_CONCAT(
-        CONCAT(`sku`,'::',`quantity`) SEPARATOR ';;'
+        CONCAT(`mvm`.`sku`,'::',`mvm`.`quantity`,'::',`mvs`.`bin`) SEPARATOR ';;'
       ) AS `skus`
-    FROM `ww_move`
-    WHERE `cancelled`=0
+    FROM `ww_move` AS `mvm`
+    JOIN `ww_sku` AS `mvs`
+      ON `mvs`.`sku`=`mvm`.`sku`
+    WHERE `mvm`.`cancelled`=0
     GROUP BY `task_id`
   ) AS `mv`
          ON `mv`.`task_id`=`tk`.`id`
