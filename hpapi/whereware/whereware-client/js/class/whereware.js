@@ -1242,7 +1242,7 @@ export class Whereware extends Generic {
     }
 
     async returnsSkus (evt) {
-        var b,i,ip,h3,j,opt,rows,section,sel,task,td,tn,tr;
+        var b,i,ip,h3,j,rows,section,task,td,tn,tr;
         task = this.find (this.data.whereware.team.tasks,'id',evt.currentTarget.dataset.id,false);
         section = this.qs (this.restricted,'#returns-skus');
         h3 = this.qs (section,'h3');
@@ -1283,21 +1283,11 @@ export class Whereware extends Generic {
             td.appendChild (ip);
             tn = document.createTextNode (' / ');
             td.appendChild (tn);
-            sel = document.createElement ('select');
-            sel.classList.add ('bin');
-            sel.setAttribute ('name','bin');
-            opt = document.createElement ('option');
-            opt.setAttribute ('value','');
-            opt.innerText = 'Select:';
-            sel.appendChild (opt);
-            for (j=0;j<this.data.config.constants.WHEREWARE_RETURNS_BINS.value.length;j++) {
-                b = this.data.config.constants.WHEREWARE_RETURNS_BINS.value[j];
-                opt = document.createElement ('option');
-                opt.setAttribute ('value',b);
-                opt.innerText = b;
-                sel.appendChild (opt);
-            }
-            td.appendChild (sel);
+            ip = document.createElement ('input');
+            ip.classList.add ('bin');
+            ip.setAttribute ('name','bin');
+            ip.setAttribute ('value',task.skus[i].bin);
+            td.appendChild (ip);
             tr.appendChild (td);
             // Select by checkbox
             td = document.createElement ('td');

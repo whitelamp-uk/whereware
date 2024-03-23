@@ -350,7 +350,6 @@ class Whereware {
         $out->constants->WHEREWARE_LOCATION_COMPONENT                   = new \stdClass ();
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS               = new \stdClass ();
         $out->constants->WHEREWARE_RETURNS_LOCATION                     = new \stdClass ();
-        $out->constants->WHEREWARE_RETURNS_BINS                         = new \stdClass ();
         $out->constants->WHEREWARE_ADMINER_URL                          = new \stdClass ();
         $out->constants->WHEREWARE_RESULTS_LIMIT                        = new \stdClass ();
         $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE                   = new \stdClass ();
@@ -360,7 +359,6 @@ class Whereware {
         $out->constants->WHEREWARE_LOCATION_COMPONENT->value            = WHEREWARE_LOCATION_COMPONENT;
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->value        = WHEREWARE_LOCATIONS_DESTINATIONS;
         $out->constants->WHEREWARE_RETURNS_LOCATION->value              = WHEREWARE_RETURNS_LOCATION;
-        $out->constants->WHEREWARE_RETURNS_BINS->value                  = explode (',',WHEREWARE_RETURNS_BINS);
         $out->constants->WHEREWARE_ADMINER_URL->value                   = WHEREWARE_ADMINER_URL;
         $out->constants->WHEREWARE_RESULTS_LIMIT->value                 = WHEREWARE_RESULTS_LIMIT;
         $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->value            = WHEREWARE_SKU_TEMP_NAMESPACE;
@@ -370,7 +368,6 @@ class Whereware {
         $out->constants->WHEREWARE_LOCATION_COMPONENT->definition       = 'Warehouse code for finding/selecting component bins';
         $out->constants->WHEREWARE_LOCATIONS_DESTINATIONS->definition   = 'Code prefix for identifying destination locations';
         $out->constants->WHEREWARE_RETURNS_LOCATION->definition         = 'Location for accepting returns';
-        $out->constants->WHEREWARE_RETURNS_BINS->definition             = 'Bins for holding returned stock';
         $out->constants->WHEREWARE_ADMINER_URL->definition              = 'Adminer URL';
         $out->constants->WHEREWARE_RESULTS_LIMIT->definition            = 'Maximum number of search results';
         $out->constants->WHEREWARE_SKU_TEMP_NAMESPACE->definition       = 'Prefix to search for a new user-space SKU';
@@ -1007,7 +1004,7 @@ class Whereware {
                [First available scheduled date after the original task at the destination location]
                [Usually the day after the original task and in the past - the schedule is later corrected by admin]
             2. Check the stock
-            2. Create a booking and a new task for the same destination location and new scheduled date
+            3. Create a booking and a new task for the same destination location and new scheduled date
             4. Move (fulfilled) stock from a destination to a returns bin
             5. Move (pending) the same stock back to the destination
             6. Assign the pending moves to the new task and the same team
@@ -1132,28 +1129,49 @@ class Whereware {
                     $this->hpapi->email,
                     '',
                     $booking_id,
-                    'P',
+                    'R',
                     $move->quantity,
                     $move->sku,
-                    $move->to_location, // reversed origin and target bins/locations
-                    $move->to_bin,
-                    $move->from_location,
+                    $move->to_location, // reversed origin and target
+                    $move->to_bin, // reversed origin and target
+                    WHEREWARE_LOCATION_OUT,
                     ''
                 );
+                $assigns[] = [
+                    'wwMoveAssign',
+                    $this->hpapi->email,
+                    $result[0]['id'],
+                    $task->project,
+                    $task_id_new,
+                    $task->team
+                ];
+                $result = $this->hpapi->dbCall (
+                    'wwMoveInsert',
+                    $this->hpapi->email,
+                    '',
+                    $booking_id,
+                    'R',
+                    $move->quantity,
+                    $move->sku,
+                    WHEREWARE_LOCATION_OUT,
+                    '',
+                    $move->from_location, // reversed origin and target
+                    ''
+                );
+                $assigns[] = [
+                    'wwMoveAssign',
+                    $this->hpapi->email,
+                    $result[0]['id'],
+                    $task->project,
+                    $task_id_new,
+                    $task->team
+                ];
             }
             catch (\Exception $e) {
                 $this->hpapi->diagnostic ($e->getMessage());
                 throw new \Exception (WHEREWARE_STR_DB_INSERT);
                 return false;
             }
-            $assigns[] = [
-                'wwMoveAssign',
-                $this->hpapi->email,
-                $result[0]['id'],
-                $task->project,
-                $task_id_new,
-                $task->team
-            ];
         }
         try {
             $error = WHEREWARE_STR_DB_UPDATE;
@@ -1467,6 +1485,7 @@ class Whereware {
                     $sku                = new \stdClass ();
                     $sku->sku           = $s[0];
                     $sku->quantity      = $s[1];
+                    $sku->bin           = $s[2];
                     $task->skus[]       = $sku;
                 }
             }
