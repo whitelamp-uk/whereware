@@ -1054,49 +1054,37 @@ class Whereware {
                 return false;
             }
         }
-        // Insert booking and rebook task
-        try {
-            $result = $this->hpapi->dbCall (
-                'wwBookingInsert',
-                $this->user()->user,
-                $task->project,
-                'RETURNS-TASK-'.$returns->task_id,
-                'incoming',
-                0,
-                'Returned items',
-                null,
-                null,
-                null,
-                null,
-                null,
-                ''
-            );
-            $booking_id = $result[0]['id'];
-            $result = $this->hpapi->dbCall (
-                'wwTaskInsert',
-                $task->project,
-                $task->team,
-                $task->location,
-                $task->rebook_date,
-                '',
-                '',
-                $task->id // audits original task
-            );
-            $task_id_new = $result[0]['id'];
-        }
-        catch (\Exception $e) {
-            $this->hpapi->diagnostic ($e->getMessage());
-            throw new \Exception (WHEREWARE_STR_DB_INSERT);
-            return false;
-        }
         $assigns = [];
         // Complete return
         foreach ($returns->moves as $i=>$move) {
             try {
                 $result = $this->hpapi->dbCall (
+                    'wwBookingInsert',
+                    $this->user()->user,
+                    $task->project,
+                    $task->order_ref,
+                    'incoming',
+                    0,
+                    'Refresh return',
+                    date ('Y-m-d'),
+                    null,
+                    null,
+                    null,
+                    null,
+                    'Returned item(s) for '.$task->order_ref
+                );
+                $booking_id = $result[0]['id'];
+            }
+            catch (\Exception $e) {
+                $this->hpapi->diagnostic ($e->getMessage());
+                throw new \Exception (WHEREWARE_STR_DB);
+                return false;
+            }
+            try {
+                $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
                     $this->hpapi->email,
-                    '',
+                    $task->order_ref,
                     $booking_id,
                     'F',
                     $move->quantity,
@@ -1111,59 +1099,7 @@ class Whereware {
                     $this->hpapi->email,
                     $result[0]['id'],
                     $task->project,
-                    $task->id, // the old task
-                    $task->team
-                ];
-            }
-            catch (\Exception $e) {
-                $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB_INSERT);
-                return false;
-            }
-        }
-        // Rebook stock to destination (status P) and assign as a new task
-        foreach ($returns->moves as $move) {
-            try {
-                $result = $this->hpapi->dbCall (
-                    'wwMoveInsert',
-                    $this->hpapi->email,
-                    '',
-                    $booking_id,
-                    'R',
-                    $move->quantity,
-                    $move->sku,
-                    $move->to_location, // reversed origin and target
-                    $move->to_bin, // reversed origin and target
-                    WHEREWARE_LOCATION_OUT,
-                    ''
-                );
-                $assigns[] = [
-                    'wwMoveAssign',
-                    $this->hpapi->email,
-                    $result[0]['id'],
-                    $task->project,
-                    $task_id_new,
-                    $task->team
-                ];
-                $result = $this->hpapi->dbCall (
-                    'wwMoveInsert',
-                    $this->hpapi->email,
-                    '',
-                    $booking_id,
-                    'R',
-                    $move->quantity,
-                    $move->sku,
-                    WHEREWARE_LOCATION_OUT,
-                    '',
-                    $move->from_location, // reversed origin and target
-                    ''
-                );
-                $assigns[] = [
-                    'wwMoveAssign',
-                    $this->hpapi->email,
-                    $result[0]['id'],
-                    $task->project,
-                    $task_id_new,
+                    $returns->task_id,
                     $task->team
                 ];
             }
@@ -1475,7 +1411,6 @@ class Whereware {
             $task                       = new \stdClass ();
             $task->id                   = $row['id'];
             $task->updated              = $row['updated'];
-            $task->rebooks_task_id      = $row['rebooks_task_id'];
             $task->scheduled_date       = $row['scheduled_date'];
             $task->skus                 = [];
             if ($row['skus']) {

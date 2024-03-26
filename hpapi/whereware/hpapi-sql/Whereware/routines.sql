@@ -808,31 +808,16 @@ CREATE PROCEDURE `wwTask`(
 BEGIN
   SELECT
     `tk`.*
-   ,IFNULL(`tk_nxt`.`rebook_date`,DATE_ADD(CURDATE(),INTERVAL 1 DAY)) AS `rebook_date`
-   ,`mv`.`quantity`-IFNULL(`mv_rtn`.`quantity`,0) AS `quantity`
+   ,`mv`.`quantity`
    ,`mv`.`sku`
    ,`mv`.`status`
    ,`mv`.`order_ref`
+   ,`mv`.`booking_id`
   FROM `ww_task` AS `tk`
   JOIN `ww_move` AS `mv`
     ON `mv`.`cancelled`=0
    AND `mv`.`task_id`=`tk`.`id`
    AND `mv`.`to_location`=`tk`.`location`
-  LEFT JOIN `ww_move` AS `mv_rtn`
-         ON `mv_rtn`.`id`!=`mv`.`id` -- this should be the case anyway...
-        AND `mv_rtn`.`cancelled`=0
-        AND `mv_rtn`.`task_id`=`tk`.`id`
-        AND `mv_rtn`.`from_location`=`tk`.`location`
-        AND `mv_rtn`.`sku`=`mv`.`sku`
-  LEFT JOIN (
-    SELECT
-      `id`
-     ,DATE_SUB(MIN(`scheduled_date`),INTERVAL 1 DAY) AS `rebook_date`
-    FROM `ww_task`
-    WHERE `id`=taskId
-      AND `scheduled_date`>CURDATE()
-  )      AS `tk_nxt`
-         ON `tk_nxt`.`id`=`tk`.`id`
   WHERE `tk`.`id`=taskId
   ;
 END$$
@@ -865,7 +850,8 @@ BEGIN
   INSERT INTO `ww_task`
   SET
     `updated`=NOW()
-   ,`rebooks_task_id`=rebooksTaskId
+-- obsolete
+--   ,`rebooks_task_id`=rebooksTaskId
    ,`location`=locationCode
    ,`scheduled_date`=scheduledDate
    ,`project`=projectCode

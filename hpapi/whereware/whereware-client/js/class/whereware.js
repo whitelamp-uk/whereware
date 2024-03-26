@@ -1207,34 +1207,32 @@ export class Whereware extends Generic {
         cnt = 0;
         for (i=0;this.data.whereware.team.tasks[i];i++) {
             task = this.data.whereware.team.tasks[i];
-            if (!task.rebooks_task_id) {
-                // Create row
-                tr = document.createElement ('tr');
-                tr.dataset.team = this.data.whereware.team.team;
-                // Team
-                td = document.createElement ('td');
-                td.innerText = this.data.whereware.team.name;
-                tr.appendChild (td);
-                // Location
-                td = document.createElement ('td');
-                td.innerText = task.location_name;
-                tr.appendChild (td);
-                // Task date
-                td = document.createElement ('td');
-                td.innerText = task.scheduled_date;
-                tr.appendChild (td);
-                // Button
-                td = document.createElement ('td');
-                btn = document.createElement ('button');
-                btn.dataset.id = task.id;
-                btn.innerText = 'Returns';
-                btn.addEventListener ('click',this.returnsSkus.bind(this));
-                td.appendChild (btn);
-                tr.appendChild (td);
-                // Append row
-                rows.appendChild (tr);
-                cnt++;
-            }
+            // Create row
+            tr = document.createElement ('tr');
+            tr.dataset.team = this.data.whereware.team.team;
+            // Team
+            td = document.createElement ('td');
+            td.innerText = this.data.whereware.team.name;
+            tr.appendChild (td);
+            // Location
+            td = document.createElement ('td');
+            td.innerText = task.location_name;
+            tr.appendChild (td);
+            // Task date
+            td = document.createElement ('td');
+            td.innerText = task.scheduled_date;
+            tr.appendChild (td);
+            // Button
+            td = document.createElement ('td');
+            btn = document.createElement ('button');
+            btn.dataset.id = task.id;
+            btn.innerText = 'Returns';
+            btn.addEventListener ('click',this.returnsSkus.bind(this));
+            td.appendChild (btn);
+            tr.appendChild (td);
+            // Append row
+            rows.appendChild (tr);
+            cnt++;
         }
         if (cnt>0) {
             section.classList.add ('active');
