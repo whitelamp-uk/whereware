@@ -68,7 +68,8 @@ class Whereware {
             // Maximum Availability model - MAXA
             return $matches[0]['bin'];
         }
-        return ''; // the "anywhere" (or nowhere!) bin;
+        // No moves in the inventory so find the home bin from the SKU table
+        return $this->skus($sku)->skus[0]->bin; // Home ww_sku.bin is the last resort;
     }
 
     public function book ($booking) {
