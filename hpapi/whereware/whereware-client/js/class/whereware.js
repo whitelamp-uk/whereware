@@ -583,34 +583,36 @@ export class Whereware extends Generic {
         }
         obj.tasks = [];
         for (r=4;r in data;r++) {
-            task = {
-                team : obj.teamPrefix+data[r][0],
-                location : obj.locationPrefix+data[r][1],
-                name : data[r][2],
-                postcode : data[r][3],
-                scheduled_date : null,
-                skus : [],
-            }
-            if (data[r][4]) {
-                if (data[r][4].match(/^[0-9]{4}[^0-9][0-9]{2}[^0-9][0-9]{2}/)) {
-                    task.scheduled_date = data[r][4].substr (0,4) + '-' + data[r][4].substr (5,2) + '-' + data[r][4].substr (8,2);
+            if (data[r][0]) {
+                task = {
+                    team : obj.teamPrefix+data[r][0],
+                    location : obj.locationPrefix+data[r][1],
+                    name : data[r][2],
+                    postcode : data[r][3],
+                    scheduled_date : null,
+                    skus : [],
                 }
-                else if (data[r][4].match(/^[0-9]{2}[^0-9][0-9]{2}[^0-9][0-9]{4}/)) {
-                    task.scheduled_date = data[r][4].substr (6,4) + '-' + data[r][4].substr (3,2) + '-' + data[r][4].substr (0,2);
-                }
-                else {
-                    e.push ('Invalid date format in cell E'+(r+1));
-                }
-            }
-            for (i=0;i in obj.skus;i++) {
-                q = 0;
-                for (j=0;j in obj.skus[i].columns;j++) {
-                    if (data[r][obj.skus[i].columns[j]]>0) {
-                        q += data[r][obj.skus[i].columns[j]];
+                if (data[r][4]) {
+                    if (data[r][4].match(/^[0-9]{4}[^0-9][0-9]{2}[^0-9][0-9]{2}/)) {
+                        task.scheduled_date = data[r][4].substr (0,4) + '-' + data[r][4].substr (5,2) + '-' + data[r][4].substr (8,2);
+                    }
+                    else if (data[r][4].match(/^[0-9]{2}[^0-9][0-9]{2}[^0-9][0-9]{4}/)) {
+                        task.scheduled_date = data[r][4].substr (6,4) + '-' + data[r][4].substr (3,2) + '-' + data[r][4].substr (0,2);
+                    }
+                    else {
+                        e.push ('Invalid date format in cell E'+(r+1));
                     }
                 }
-                if (q>0) {
-                    task.skus.push ( {sku: obj.skus[i].sku, quantity: q} );
+                for (i=0;i in obj.skus;i++) {
+                    q = 0;
+                    for (j=0;j in obj.skus[i].columns;j++) {
+                        if (data[r][obj.skus[i].columns[j]]>0) {
+                            q += data[r][obj.skus[i].columns[j]];
+                        }
+                    }
+                    if (q>0) {
+                        task.skus.push ( {sku: obj.skus[i].sku, quantity: q} );
+                    }
                 }
             }
             obj.tasks.push (task);
