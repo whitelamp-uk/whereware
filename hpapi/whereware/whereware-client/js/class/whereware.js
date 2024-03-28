@@ -566,12 +566,15 @@ export class Whereware extends Generic {
         }
         if (data[3]) {
             for (c=5;c in data[3];c++) {
-                sku = this.find (obj.skus,'sku',data[3][c].replace(' ',''),false);
-                if (sku) {
-                   sku.columns.push (c);
-                }
-                else {
-                    obj.skus.push ({ sku : data[3][c].replace(' ',''), columns: [c] });
+                // Columns with no SKU are assumed to be blank
+                if (sku=data[3][c].replace(' ','')) {
+                    sku = this.find (obj.skus,'sku',sku,false);
+                    if (sku) {
+                       sku.columns.push (c);
+                    }
+                    else {
+                        obj.skus.push ({ sku : data[3][c].replace(' ',''), columns: [c] });
+                    }
                 }
             }
         }
