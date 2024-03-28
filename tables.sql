@@ -52,12 +52,9 @@ CREATE TABLE IF NOT EXISTS `ww_consignment` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `team` char(64) CHARACTER SET ascii DEFAULT NULL,
   `notes` text COLLATE utf8_unicode_ci NOT NULL,
   `attachment_1` mediumblob DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `team` (`team`),
-  CONSTRAINT `ww_consignment_team` FOREIGN KEY (`team`) REFERENCES `ww_team` (`team`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
