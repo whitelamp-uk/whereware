@@ -617,8 +617,8 @@ export class Whereware extends Generic {
                         task.skus.push ( {sku: obj.skus[i].sku, quantity: q} );
                     }
                 }
+                obj.tasks.push (task);
             }
-            obj.tasks.push (task);
         }
         // Render for review
         tasks = await this.tasksRequest (this.parameters.wherewareProjectSelect.value);
