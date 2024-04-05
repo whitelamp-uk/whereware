@@ -27,7 +27,20 @@ class Whereware {
         return $this->user ();
     }
 
-    public function binSelect ($qty,$sku,$results) {
+    public function binSelect ($location,$qty,$sku) {
+        // Get best bin by a selection algorithm
+        try {
+            $results = $this->hpapi->dbCall (
+                'wwInventory',
+                $location,
+                $sku
+            );
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
         $max                = 0;
         $matches            = [];
         foreach ($results as $r) {
@@ -69,7 +82,13 @@ class Whereware {
             return $matches[0]['bin'];
         }
         // No moves in the inventory so find the home bin from the SKU table
-        return $this->skus($sku)->skus[0]->bin; // Home ww_sku.bin is the last resort;
+        if ($bin=$this->skus($sku)->skus[0]->bin) {
+            return $bin;
+        }
+        else {
+            throw new \Exception ('No bin found for SKU '.$sku);
+            return false;
+        }
     }
 
     public function book ($booking) {
@@ -205,34 +224,32 @@ class Whereware {
         $sku_group = strtoupper (WHEREWARE_SKU_TEMP_NAMESPACE.'-'.$this->user()->user);
         $assigns = [
         ];
+        foreach ($booking->items as $i=>$item) {
+            $booking->items[$i]->bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,$item->quantity,$item->sku);
+        }
         foreach ($booking->items as $item) {
             try {
-                $bin_from = '';
-                if ($locations[$booking->type]['from']) {
-                    // Get best bin by a selection algorithm
-                    $error = WHEREWARE_STR_DB;
-                    $result = $this->hpapi->dbCall (
-                        'wwInventory',
-                        $locations[$booking->type]['from'],
-                        $item->sku
-                    );
-                    if (count($result)) {
-                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
-                    }
-                }
                 $error = WHEREWARE_STR_DB_INSERT;
+                $bin_from = '';
+                if ($locations[$booking->type]['from']==WHEREWARE_LOCATION_COMPONENT) {
+                    $bin_from = $item->bin;
+                }
+                $bin_via = '';
+                if ($locations[$booking->type]['via']==WHEREWARE_LOCATION_COMPONENT) {
+                    $bin_via = $item->bin;
+                }
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
-                    $this->user()->user,
-                    $booking->order_ref,
-                    $booking->id,
-                    'R',
-                    $item->quantity,
-                    $item->sku,
-                    $locations[$booking->type]['from'],
-                    $bin_from,
-                    $locations[$booking->type]['via'],
-                    ''
+                    $this->user()->user,                 // inserter
+                    $booking->order_ref,                 // orderRef
+                    $booking->id,                        // bookingId
+                    'R',                                 // sts
+                    $item->quantity,                     // qty
+                    $item->sku,                          // sk
+                    $locations[$booking->type]['from'],  // frLoc
+                    $bin_from,                           // frBin
+                    $locations[$booking->type]['via'],   // toLoc
+                    $bin_via                             // toBin
                 );
                 $assigns[] = [
                     $this->user()->user,
@@ -242,31 +259,23 @@ class Whereware {
                     $booking->team
                 ];
                 if (array_key_exists('to',$locations[$booking->type])) {
-                    // Get best bin by a selection algorithm
-                    $error = WHEREWARE_STR_DB;
-                    $result = $this->hpapi->dbCall (
-                        'wwInventory',
-                        $locations[$booking->type]['via'],
-                        $item->sku
-                    );
-                    $bin_from = '';
-                    if (count($result)) {
-                        // Get bin by a selection algorithm
-                        $bin_from = $this->binSelect ($item->quantity,$item->sku,$result);
-                    }
                     $error = WHEREWARE_STR_DB_INSERT;
+                    $bin_to = '';
+                    if ($locations[$booking->type]['to']==WHEREWARE_LOCATION_COMPONENT) {
+                        $bin_to = $item->bin;
+                    }
                     $result = $this->hpapi->dbCall (
                         'wwMoveInsert',
-                        $this->user()->user,
-                        $booking->order_ref,
-                        $booking->id,
-                        'R',
-                        $item->quantity,
-                        $item->sku,
-                        $locations[$booking->type]['via'],
-                        $bin_from,
-                        $locations[$booking->type]['to'],
-                        ''
+                        $this->user()->user,                // inserter
+                        $booking->order_ref,                // orderRef
+                        $booking->id,                       // bookingId
+                        'R',                                // sts
+                        $item->quantity,                    // qty
+                        $item->sku,                         // sk
+                        $locations[$booking->type]['via'],  // frLoc
+                        $bin_via,                           // frBin
+                        $locations[$booking->type]['to'],   // toLoc
+                        $bin_to                             // toBin
                     );
                     $assigns[] = [
                         $this->user()->user,
@@ -477,16 +486,16 @@ class Whereware {
             foreach ($moves as $m) {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
-                    $this->hpapi->email,
-                    $m['order_ref'],
-                    $m['booking_id'],
-                    $m['status'],
-                    $m['quantity'],
-                    $m['sku'],
-                    $m['from_location'],
-                    $m['from_bin'],
-                    $m['to_location'],
-                    $m['to_bin']
+                    $this->hpapi->email,  // inserter
+                    $m['order_ref'],      // orderRef
+                    $m['booking_id'],     // bookingId
+                    $m['status'],         // sts
+                    $m['quantity'],       // qty
+                    $m['sku'],            // sk
+                    $m['from_location'],  // frLoc
+                    $m['from_bin'],       // frBin
+                    $m['to_location'],    // toLoc
+                    $m['to_bin']          // toBin
                 );
             }
         }
@@ -686,6 +695,7 @@ class Whereware {
         $booking_id = null;
         $assigns = [];
         $locations = [];
+        $bins = [];
         foreach ($obj->skus as $sku) {
             try {
                 $results = $this->hpapi->dbCall (
@@ -707,24 +717,8 @@ class Whereware {
                 throw new \Exception (WHEREWARE_STR_SKU_MISSING.': '.$sku);
                 return false;
             }
-            /*
-            // This is probably obsolete; if not, the SKU object is now a simple array so...
-            try {
-                $result = $this->hpapi->dbCall (
-                    'wwProjectSkuInsert',
-                    $obj->project,
-                    $sku->sku,
-                    $sku->bin,
-                    $sku->name,
-                    1*$sku->composite
-                );
-            }
-            catch (\Exception $e) {
-                $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB_INSERT);
-                return false;
-            }
-            */
+            // This will foce an error if there is no valid bin for a SKU (before we start inserting this batch of moves)
+            $this->binSelect (WHEREWARE_LOCATION_COMPONENT,1,$sku);
         }
         foreach ($obj->tasks as $task) {
             if (!in_array($task->location,$locations)) {
@@ -804,27 +798,22 @@ class Whereware {
                             );
                             $booking_id = $result[0]['id'];
                         }
-                        // Find the best component bin
-                        $result = $this->hpapi->dbCall (
-                            'wwInventory',
-                            WHEREWARE_LOCATION_COMPONENT,
-                            $sku->sku
-                        );
-                        $bin = $this->binSelect ($sku->quantity,$sku->sku,$result);
+                        // Above we did this for quantity 1 so we are confident there is at least one valid bin by this point
+                        $bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,$sku->quantity,$sku->sku);
                         // Insert move from components to out
                         $error = WHEREWARE_STR_DB_INSERT;
                         $result = $this->hpapi->dbCall (
                             'wwMoveInsert',
-                            $this->hpapi->email,
-                            $obj->order_ref,
-                            $booking_id,
-                            'R',
-                            $sku->quantity,
-                            $sku->sku,
-                            WHEREWARE_LOCATION_COMPONENT,
-                            $bin,
-                            WHEREWARE_LOCATION_OUT,
-                            ''
+                            $this->hpapi->email,           // inserter
+                            $obj->order_ref,               // orderRef
+                            $booking_id,                   // bookingId
+                            'R',                           // sts
+                            $sku->quantity,                // qty
+                            $sku->sku,                     // sk
+                            WHEREWARE_LOCATION_COMPONENT,  // frLoc
+                            $bin,                          // frBin
+                            WHEREWARE_LOCATION_OUT,        // toLoc
+                            ''                             // toBin
                         );
                         $move_id = $result[0]['id'];
                         // Assign move
@@ -840,16 +829,16 @@ class Whereware {
                         $error = WHEREWARE_STR_DB_INSERT;
                         $result = $this->hpapi->dbCall (
                             'wwMoveInsert',
-                            $this->hpapi->email,
-                            $obj->order_ref,
-                            $booking_id,
-                            'R',
-                            $sku->quantity,
-                            $sku->sku,
-                            WHEREWARE_LOCATION_OUT,
-                            '',
-                            $task->location,
-                            ''
+                            $this->hpapi->email,     // inserter
+                            $obj->order_ref,         // orderRef
+                            $booking_id,             // bookingId
+                            'R',                     // sts
+                            $sku->quantity,          // qty
+                            $sku->sku,               // sk
+                            WHEREWARE_LOCATION_OUT,  // frLoc
+                            '',                      // frBin
+                            $task->location,         // toLoc
+                            ''                       // toBin
                         );
                         $move_id = $result[0]['id'];
                         // Assign move
@@ -1084,16 +1073,16 @@ class Whereware {
             try {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
-                    $this->hpapi->email,
-                    $task->order_ref,
-                    $booking_id,
-                    'F',
-                    $move->quantity,
-                    $move->sku,
-                    $move->from_location,
-                    '',
-                    $move->to_location,
-                    $move->to_bin
+                    $this->hpapi->email,   // inserter
+                    $task->order_ref,      // orderRef
+                    $booking_id,           // bookingId
+                    'F',                   // sts
+                    $move->quantity,       // qty
+                    $move->sku,            // sk
+                    $move->from_location,  // frLoc
+                    '',                    // frBin
+                    $move->to_location,    // toLoc
+                    $move->to_bin          // toBin
                 );
                 $assigns[] = [
                     'wwMoveAssign',
