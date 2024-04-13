@@ -999,7 +999,7 @@ BEGIN
      ,MIN(1*(`mvm`.`status`='R')+2*(`mvm`.`status`='T')+3*(`mvm`.`status`='F')) AS `status_min`
      ,MAX(1*(`mvm`.`status`='R')+2*(`mvm`.`status`='T')+3*(`mvm`.`status`='F')) AS `status_max`
      ,GROUP_CONCAT(
-        CONCAT(`mvm`.`sku`,'::',`mvm`.`quantity`,'::',`mvs`.`bin`) SEPARATOR ';;'
+        DISTINCT CONCAT(`mvm`.`sku`,'::',`mvm`.`quantity`,'::',`mvs`.`bin`) SEPARATOR ';;'
       ) AS `skus`
     FROM `ww_move` AS `mvm`
     JOIN `ww_sku` AS `mvs`
