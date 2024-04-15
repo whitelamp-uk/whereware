@@ -1180,7 +1180,7 @@ export class Whereware extends Generic {
             return response.returnValue;
         }
         catch (e) {
-            console.log ('projectUpdateRequest(): '+e.message);
+            console.log ('returnsRequest(): '+e.message);
             err = e.message.split (' ');
             if (err[0]=='611') {
                 err.shift ();
