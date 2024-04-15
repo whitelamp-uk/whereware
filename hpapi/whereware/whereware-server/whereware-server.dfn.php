@@ -20,6 +20,7 @@ define ( 'WHEREWARE_STR_PROJECT',               '612 400 Failed to identify proj
 define ( 'WHEREWARE_STR_RESULTS_LIMIT',         '613 400 Too many results'                  );
 define ( 'WHEREWARE_STR_LOCATION_MISSING',      '614 400 Location could not be found'       );
 define ( 'WHEREWARE_STR_SKU_MISSING',           '615 400 SKU could not be found'            );
+define ( 'WHEREWARE_STR_TEAM_MISSING',          '616 400 Team could not be found'           );
 define ( 'WHEREWARE_STR_PASSWORD_DICTIONARY',   'Contains common words, names or patterns'  );
 define ( 'WHEREWARE_STR_PASSWORD_CHARACTERS',   'Not enough different characters'           );
 define ( 'WHEREWARE_STR_PASSWORD_OTHER',        'Too easy to crack'                         );

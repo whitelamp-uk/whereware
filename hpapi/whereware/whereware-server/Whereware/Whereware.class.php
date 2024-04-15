@@ -768,7 +768,8 @@ class Whereware {
                 }
                 catch (\Exception $e) {
                     $this->hpapi->diagnostic ($e->getMessage());
-                    throw new \Exception (WHEREWARE_STR_DB_INSERT);
+                    // Assume this is because the team does not exist in ww_team
+                    throw new \Exception (WHEREWARE_STR_TEAM_MISSING.' - '.$task->team);
                     return false;
                 }
                 $obj->tasks[$i]->id = $result[0]['id'];
@@ -842,7 +843,6 @@ class Whereware {
                         );
                         $move_id = $result[0]['id'];
                         // Assign move
-                        $error = WHEREWARE_STR_DB_INSERT;
                         $assigns[] = [
                             'wwMoveAssign',
                             $this->hpapi->email,
