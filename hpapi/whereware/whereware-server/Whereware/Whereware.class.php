@@ -1045,31 +1045,32 @@ class Whereware {
             }
         }
         $assigns = [];
+        // Make a booking for the return
+        try {
+            $result = $this->hpapi->dbCall (
+                'wwBookingInsert',
+                $this->user()->user,
+                $task->project,
+                $task->order_ref,
+                'incoming',
+                0,
+                'Refresh return',
+                date ('Y-m-d'),
+                null,
+                null,
+                null,
+                null,
+                'Returned item(s) for '.$task->order_ref
+            );
+            $booking_id = $result[0]['id'];
+        }
+        catch (\Exception $e) {
+            $this->hpapi->diagnostic ($e->getMessage());
+            throw new \Exception (WHEREWARE_STR_DB);
+            return false;
+        }
         // Complete return
         foreach ($returns->moves as $i=>$move) {
-            try {
-                $result = $this->hpapi->dbCall (
-                    'wwBookingInsert',
-                    $this->user()->user,
-                    $task->project,
-                    $task->order_ref,
-                    'incoming',
-                    0,
-                    'Refresh return',
-                    date ('Y-m-d'),
-                    null,
-                    null,
-                    null,
-                    null,
-                    'Returned item(s) for '.$task->order_ref
-                );
-                $booking_id = $result[0]['id'];
-            }
-            catch (\Exception $e) {
-                $this->hpapi->diagnostic ($e->getMessage());
-                throw new \Exception (WHEREWARE_STR_DB);
-                return false;
-            }
             try {
                 $result = $this->hpapi->dbCall (
                     'wwMoveInsert',
