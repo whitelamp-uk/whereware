@@ -225,11 +225,11 @@ class Whereware {
         $assigns = [
         ];
         foreach ($booking->items as $i=>$item) {
-            if ($booking->type=='incoming') {
-                $booking->items[$i]->bin = '';
+            if ($booking->type=='outgoing') {
+                $booking->items[$i]->bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,$item->quantity,$item->sku);
             }
             else {
-                $booking->items[$i]->bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,$item->quantity,$item->sku);
+                $booking->items[$i]->bin = '';
             }
         }
         foreach ($booking->items as $item) {
