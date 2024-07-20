@@ -62,10 +62,13 @@ class Whereware {
                         return $r['bin'];
                     }
                 }
-                // Find best availability
-                $matches[]  = $r;
-                if ($max<$r['available']) {
-                    $max    = $r['available'];
+                if (!in_array($r['reserve'],['','0','n','N'])) {
+                    // Bin is not a reserve bin
+                    $matches[]  = $r;
+                    if ($max<$r['available']) {
+                        // Increase highest availability
+                        $max    = $r['available'];
+                    }
                 }
             }
         }
