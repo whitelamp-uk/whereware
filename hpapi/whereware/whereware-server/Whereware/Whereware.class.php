@@ -27,8 +27,16 @@ class Whereware {
         return $this->user ();
     }
 
-    public function binSelect ($location,$qty,$sku) {
-        // Get best bin by a selection algorithm
+    public function binSelect ($location,$qty=null,$sku) {
+        if ($qty===null) {
+            // Stock levels are immaterial, just select the SKU native "home" bin
+            $sku = $this->sku ($sku);
+            if ($sku) {
+                return $sku->bin;
+            }
+            return '';
+        }
+        // Get best bin by a selection algorithm that considers bin quantities
         try {
             $results = $this->hpapi->dbCall (
                 'wwInventory',
@@ -226,9 +234,15 @@ class Whereware {
         ];
         foreach ($booking->items as $i=>$item) {
             if ($booking->type=='outgoing') {
+                // The stock matters; use the configured selection algorithm
                 $booking->items[$i]->bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,$item->quantity,$item->sku);
             }
+            elseif ($booking->type=='incoming') {
+                // For a "to" bin, stock is immaterial; select the home bin
+                $booking->items[$i]->bin = $this->binSelect (WHEREWARE_LOCATION_COMPONENT,null,$item->sku);
+            }
             else {
+                // A human will decide later
                 $booking->items[$i]->bin = '';
             }
         }
