@@ -345,9 +345,12 @@ BEGIN
   JOIN `ww_recent_inventory` AS `i`
     ON `i`.`location`=inventoryLocation
    AND `i`.`sku`=`s`.`sku`
+  JOIN `ww_bin` AS `b`
+    ON `b`.`bin`=`i`.`bin`
   SET
     `i`.`sku_alt_code`=`s`.`alt_code`
    ,`i`.`sku_description`=`s`.`description`
+   ,`i`.`reserve`=`b`.`reserve`
   ;
   SELECT
     `i`.*
@@ -724,6 +727,11 @@ BEGIN
      ,IFNULL(`assemblies`.`available`,0)
      ,IFNULL(`parts`.`available`,0)
     ) AS `available`
+   ,IF(
+      `c`.`sku` IS NOT NULL
+     ,IFNULL(`assemblies`.`reserve`,0)
+     ,IFNULL(`parts`.`reserve`,0)
+    ) AS `of_which_reserve`
   FROM `ww_sku` AS `s`
   LEFT JOIN `ww_composite` AS `c`
          ON `c`.`sku`=`s`.`sku`
@@ -732,6 +740,7 @@ BEGIN
       `sku`
      ,SUM(`in_bin`) AS `in_bins`
      ,SUM(`available`) AS `available`
+     ,SUM((`reserve` NOT IN ('','0','n','N'))*`available`) AS `reserve`
     FROM `ww_recent_inventory`
     WHERE `location`=locationComponent
     GROUP BY `sku`
@@ -743,6 +752,7 @@ BEGIN
       `sku`
      ,SUM(`in_bin`) AS `in_bins`
      ,SUM(`available`) AS `available`
+     ,SUM((`reserve` NOT IN ('','0','n','N'))*`available`) AS `reserve`
     FROM `ww_recent_inventory`
     WHERE `location`=locationComposite
     GROUP BY `sku`

@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS `ww_bin` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `updated` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp(),
   `hidden` tinyint(1) unsigned NOT NULL DEFAULT 0,
-  `bin` char(64) CHARACTER SET ascii NOT NULL,
+  `bin` char(64) CHARACTER SET ascii NOT NULL DEFAULT '',
+  `reserve` char(8) CHARACTER SET ascii NOT NULL,
   `notes` text CHARACTER SET utf8 COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   UNIQUE KEY `bin` (`bin`)
@@ -203,6 +204,7 @@ CREATE TABLE IF NOT EXISTS `ww_recent_inventory` (
   `sku_description` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `location` char(64) CHARACTER SET ascii NOT NULL,
   `bin` char(64) CHARACTER SET ascii NOT NULL,
+  `reserve` char(8) CHARACTER SET ascii NOT NULL DEFAULT '',
   `hidden` int(1) unsigned NOT NULL DEFAULT 0,
   `updated` datetime DEFAULT NULL COMMENT 'Last time a move took place involving this bin',
   `moved_on` int(11) NOT NULL DEFAULT 0 COMMENT 'Notionally moved out of this "from" bin (even if still there)',

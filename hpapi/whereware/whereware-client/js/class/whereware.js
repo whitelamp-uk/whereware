@@ -1361,7 +1361,7 @@ export class Whereware extends Generic {
                 // Cell:
                 k = document.createElement ('td');
                 k.classList.add ('available');
-                k.textContent = response.skus[i].available;
+                k.textContent = 1*response.skus[i].available - 1*response.skus[i].of_which_reserve;
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
