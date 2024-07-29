@@ -97,8 +97,9 @@ class Whereware {
             return $bin;
         }
         else {
-            throw new \Exception ('No bin found for SKU '.$sku);
-            return false;
+            return '';
+//            throw new \Exception ('No bin found for SKU '.$sku);
+//            return false;
         }
     }
 
