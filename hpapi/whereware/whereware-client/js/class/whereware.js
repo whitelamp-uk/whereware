@@ -147,6 +147,35 @@ export class Whereware extends Generic {
         }
     }
 
+    async binSelectRequest (evt) {
+        var o,p,request,response;
+        evt.preventDefault ();
+        p = evt.currentTarget.parentElement;
+        o = this.qs (p,'#whereware-binselect-return')
+        request     = {
+            "email" : this.access.email.value
+           ,"method" : {
+                "vendor" : "whereware"
+               ,"package" : "whereware-server"
+               ,"class" : "\\Whereware\\Whereware"
+               ,"method" : "binSelect"
+               ,"arguments" : [
+                    this.qs (p,'[name="whereware-binselect-location"]').value,
+                    1 * this.qs (p,'[name="whereware-binselect-quantity"]').value,
+                    this.qs (p,'[name="whereware-binselect-sku"]').value,
+                    1 * p.hasAttribute('data-diagnostic')
+               ]
+            }
+        }
+        try {
+            response = await this.request (request);
+            o.textContent = response.returnValue;
+        }
+        catch (e) {
+            o.textContent = 'could not get bin selection: '+e.message;
+        }
+    }
+
     async blueprintRequest (sku) {
         var request,response;
         request     = {

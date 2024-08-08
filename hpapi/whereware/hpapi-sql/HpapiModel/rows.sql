@@ -50,6 +50,7 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 
 ('whereware', 'whereware-server', '\\Whereware\\Blueprint', 'blueprint', 'Blueprint', 'Get blueprint definition'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'authenticate',	'Basic current user details',	'Dummy method to authenticate'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'binSelect', 'Bin selection algorithm', 'Select a bin based on the algorithm'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'book',	'Create booking',	'Add booking and raise its stock moves'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components',	'Component SKUs',	'Component SKUs filtered by search terms'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites',	'Composite SKUs',	'Composite SKUs filtered by search terms'),
@@ -75,6 +76,10 @@ INSERT IGNORE INTO `hpapi_method` (`vendor`, `package`, `class`, `method`, `labe
 INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `argument`, `name`, `empty_allowed`, `pattern`) VALUES
 
 ('whereware', 'whereware-server', '\\Whereware\\Blueprint', 'blueprint', 1,  'Composite SKU', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'binSelect', 1,  'Location code', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'binSelect', 2,  'Quantity', 0,  'int-11-positive'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'binSelect', 3,  'SKU code', 0,  'varchar-64'),
+('whereware', 'whereware-server', '\\Whereware\\Whereware', 'binSelect', 4,  'Give diagnostic?', 0,  'db-boolean'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'book', 1,  'Booking object', 0,  'object'),
 ('whereware', 'whereware-server', '\\Whereware\\Whereware', 'components', 1,  'Search terms', 1,  'varchar-64'),
 ('whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites',	1,	'Search terms',	1,	'varchar-3-64'),
@@ -104,12 +109,14 @@ INSERT IGNORE INTO `hpapi_methodarg` (`vendor`, `package`, `class`, `method`, `a
 
 INSERT IGNORE INTO `hpapi_run` (`usergroup`, `vendor`, `package`, `class`, `method`) VALUES
 
+('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'binSelect'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'move'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('admin', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skuUserUpdate'),
+('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'binSelect'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectInsert'),
 ('manager', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projectUpdate'),
@@ -287,6 +294,7 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware', 'wwBookingInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'returns'),
 ('Whereware',	'wwBins',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'config'),
 ('Whereware', 'wwInventory',  'whereware',  'whereware-server', '\\Whereware\\Blueprint', 'blueprint'),
+('Whereware', 'wwInventory', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'binSelect'),
 ('Whereware', 'wwInventory',  'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'inventory'),
 ('Whereware',	'wwInventory',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'picklist'),
@@ -306,6 +314,7 @@ INSERT IGNORE INTO `hpapi_call` (`model`, `spr`, `vendor`, `package`, `class`, `
 ('Whereware', 'wwProjects', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'projects'),
 ('Whereware', 'wwSkuInsert', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skus'),
 ('Whereware', 'wwSkuUpdate', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'skuUserUpdate'),
+('Whereware', 'wwSkus', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'binSelect'),
 ('Whereware', 'wwSkus', 'whereware',  'whereware-server', '\\Whereware\\Whereware', 'book'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'components'),
 ('Whereware',	'wwSkus',	'whereware',	'whereware-server',	'\\Whereware\\Whereware',	'composites'),

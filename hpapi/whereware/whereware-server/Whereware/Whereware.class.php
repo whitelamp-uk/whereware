@@ -27,12 +27,28 @@ class Whereware {
         return $this->user ();
     }
 
-    public function binSelect ($location,$qty=null,$sku) {
-        if ($qty===null) {
+    public function binSelect ($location,$qty=null,$sku,$diagnostic=0) {
+        $qty *= 1;
+        if ($diagnostic>0) {
+            $diagnostic = 'selecting > ';
+        }
+        else {
+            $diagnostic = null;
+        }
+        if (!$qty) {
             // Stock levels are immaterial, just select the SKU native "home" bin
-            $sku = $this->sku ($sku);
-            if ($sku) {
-                return $sku->bin;
+            if ($diagnostic) {
+                $diagnostic .= 'qty-irrelevant > ';
+            }
+            $sku_obj = $this->sku ($sku);
+            if ($sku_obj && strlen($sku_obj->bin)) {
+                if ($diagnostic) {
+                    return $diagnostic.$sku_obj->bin;
+                }
+                return $sku_obj->bin;
+            }
+            if ($diagnostic) {
+                return $diagnostic.'no-home > leave-blank';
             }
             return '';
         }
@@ -53,26 +69,40 @@ class Whereware {
         $matches            = [];
         foreach ($results as $r) {
             // wwInventory() results are from a LIKE search
-            if ($r['sku']==$sku) {
-                // Result exactly matches this SKU
-                if ($r['is_home_bin'] && WHEREWARE_BIN_PRIORITY_HOME) {
-                    // This is the home bin for this SKU
-                    if ($r['available']>=$qty) {
-                        // Home bin has sufficient stock
-                        return $r['bin'];
+            if (strlen($r['bin'])) {
+                if ($r['sku']==$sku) {
+                    // Result exactly matches this SKU
+                    if ($r['is_home_bin'] && WHEREWARE_BIN_PRIORITY_HOME) {
+                        if ($diagnostic) {
+                            $diagnostic .= 'home-priority > ';
+                        }
+                        // This is the home bin for this SKU
+                        if ($r['available']>=$qty) {
+                            // Home bin has sufficient stock
+                            if ($diagnostic) {
+                                return $diagnostic.$r['bin'];
+                            }
+                            return $r['bin'];
+                        }
+                        if ($diagnostic) {
+                            $diagnostic .= 'home-insufficient > ';
+                        }
                     }
-                }
-                if (!in_array($r['reserve'],['','0','n','N'])) {
-                    // Bin is not a reserve bin
-                    $matches[]  = $r;
-                    if ($max<$r['available']) {
-                        // Increase highest availability
-                        $max    = $r['available'];
+                    if (in_array($r['reserve'],['','0','n','N'])) {
+                        // Bin is not a reserve bin
+                        $matches[]  = $r;
+                        if ($max<$r['available']) {
+                            // Increase highest availability
+                            $max    = $r['available'];
+                        }
                     }
                 }
             }
         }
         if (count($matches)) {
+            if ($diagnostic) {
+                $diagnostic .= 'minsa > ';
+            }
             if ($max>$qty && WHEREWARE_BIN_PRIORITY=='MINSA') {
                 // Minimum Sufficient Availability model - MINSA
                 $results        = [];
@@ -84,22 +114,38 @@ class Whereware {
                 ksort ($results);
                 foreach ($results as $r) {
                     if ($r['available']>=$qty) {
+                        if ($diagnostic) {
+                            return $diagnostic.$r['bin'];
+                        }
                         return $r['bin'];
                     }
                 }
             }
             // If $max<=$qty, the MINSA model is pointless - we want the bin with the mostest in this case
+            if ($diagnostic) {
+                $diagnostic .= 'maxa > ';
+            }
             // Maximum Availability model - MAXA
+            if ($diagnostic) {
+                return $diagnostic.$matches[0]['bin'];
+            }
             return $matches[0]['bin'];
+        }
+        if ($diagnostic) {
+            $diagnostic .= 'no-moves > ';
         }
         // No moves in the inventory so find the home bin from the SKU table
         if ($bin=$this->skus($sku)->skus[0]->bin) {
+            if ($diagnostic) {
+                return $diagnostic.$bin;
+            }
             return $bin;
         }
         else {
+            if ($diagnostic!==null) {
+                return $diagnostic.'no-bin';
+            }
             return '';
-//            throw new \Exception ('No bin found for SKU '.$sku);
-//            return false;
         }
     }
 
