@@ -74,7 +74,7 @@ class Whereware {
                     // Result exactly matches this SKU
                     if ($r['is_home_bin'] && WHEREWARE_BIN_PRIORITY_HOME) {
                         if ($diagnostic) {
-                            $diagnostic .= 'home-priority > ';
+                            $diagnostic .= 'home-prioritised > ';
                         }
                         // This is the home bin for this SKU
                         if ($r['available']>=$qty) {
