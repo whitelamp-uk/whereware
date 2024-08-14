@@ -1385,12 +1385,16 @@ export class Whereware extends Generic {
                 // Cell:
                 k = document.createElement ('td');
                 k.classList.add ('in_bins');
-                k.textContent = response.skus[i].in_bins;
+                if (response.skus[i].in_bins!=undefined) {
+                    k.textContent = response.skus[i].in_bins;
+                }
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
                 k.classList.add ('available');
-                k.textContent = 1*response.skus[i].available - 1*response.skus[i].of_which_reserve;
+                if (response.skus[i].available!=undefined && response.skus[i].of_which_reserve!=undefined ) {
+                    k.textContent = 1*response.skus[i].available - 1*response.skus[i].of_which_reserve;
+                }
                 sku.appendChild (k);
                 // Cell:
                 k = document.createElement ('td');
