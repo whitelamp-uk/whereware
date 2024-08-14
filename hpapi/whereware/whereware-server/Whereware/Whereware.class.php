@@ -43,12 +43,12 @@ class Whereware {
             $sku_obj = $this->sku ($sku);
             if ($sku_obj && strlen($sku_obj->bin)) {
                 if ($diagnostic) {
-                    return $diagnostic.$sku_obj->bin;
+                    return $diagnostic.'home-found[1] > '.$sku_obj->bin;
                 }
                 return $sku_obj->bin;
             }
             if ($diagnostic) {
-                return $diagnostic.'no-home > leave-blank';
+                return $diagnostic.'no-home[1] > leave-blank';
             }
             return '';
         }
@@ -137,13 +137,13 @@ class Whereware {
         // No moves in the inventory so find the home bin from the SKU table
         if ($bin=$this->skus($sku)->skus[0]->bin) {
             if ($diagnostic) {
-                return $diagnostic.$bin;
+                return $diagnostic.'home-found[2] > '.$bin;
             }
             return $bin;
         }
         else {
-            if ($diagnostic!==null) {
-                return $diagnostic.'no-bin';
+            if ($diagnostic) {
+                return diagnostic.'no-home[2] > leave-blank';
             }
             return '';
         }
