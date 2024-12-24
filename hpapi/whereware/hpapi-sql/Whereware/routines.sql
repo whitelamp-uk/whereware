@@ -632,8 +632,8 @@ END$$
 
 
 DELIMITER $$
-DROP PROCEDURE IF EXISTS `wwSkuInsert`$$
-CREATE PROCEDURE `wwSkuInsert`(
+DROP PROCEDURE IF EXISTS `wwSkuInsertIgnore`$$
+CREATE PROCEDURE `wwSkuInsertIgnore`(
    IN `newSku` char(64)
   ,IN `newBin` char(64)
   ,IN `newAltCode` char(64)
@@ -642,16 +642,28 @@ CREATE PROCEDURE `wwSkuInsert`(
   ,IN `newNotes` text
 )
 BEGIN
-  INSERT INTO `ww_sku`
-  SET
-    `sku`=newSku
-   ,`bin`=newBin
-   ,`alt_code`=newAltCode
-   ,`unit_price`=newUnitPrice
-   ,`description`=newDescription
-   ,`notes`=newNotes
+  SET @skuExisting = null
   ;
-  SELECT LAST_INSERT_ID() AS `id`
+  SELECT
+    `sku` INTO @skuExisting
+  FROM `ww_sku`
+  WHERE `sku`=newSku
+  ;
+  IF @skuExisting IS NULL THEN
+    INSERT INTO `ww_sku`
+    SET
+      `sku`=newSku
+     ,`bin`=newBin
+     ,`alt_code`=newAltCode
+     ,`unit_price`=newUnitPrice
+     ,`description`=newDescription
+     ,`notes`=newNotes
+    ;
+    SELECT newSku INTO @skuExisting
+    ;
+  END IF
+  ;
+  SELECT @skuExisting AS `id`
   ;
 END$$
 

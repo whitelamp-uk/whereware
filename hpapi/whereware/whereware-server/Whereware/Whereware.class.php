@@ -1337,7 +1337,7 @@ class Whereware {
                         }
                     }
                 }
-                if (!$sku_group_id || ($sku_group_id && !$user_sku->alt_code && !$user_sku->description)) {
+                if (!$sku_group_id || ($sku_group_id && ($user_sku->alt_code || $user_sku->description))) {
                     // No user SKU or last one already used (has either an additional ref or a name)
                     $sku_group_id++;
                     $sku_group_id = str_pad ("$sku_group_id",WHEREWARE_SKU_TEMP_ID_LENGTH,'0',STR_PAD_LEFT);
@@ -1351,7 +1351,7 @@ class Whereware {
                     // Neither an alt_code nor a description therefore unused
                     try {
                         $result = $this->hpapi->dbCall (
-                            'wwSkuInsert',
+                            'wwSkuInsertIgnore',
                             $new->sku,
                             $new->bin,
                             $new->alt_code,
